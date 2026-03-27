@@ -1,0 +1,19 @@
+# XAMPP & Environment Files
+config.php
+includes/config.php
+.env
+
+# Database Backups
+*.sql
+
+# Uploads and User Data
+uploads/avatars/*
+!uploads/avatars/.gitkeep
+
+# OS Files
+Thumbs.db
+.DS_Store
+
+# IDE Files
+.vscode/
+.idea/

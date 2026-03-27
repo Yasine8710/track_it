@@ -1,0 +1,51 @@
+:root {
+    --bg: #050505;
+    --card: #111111;
+    --border: rgba(255, 255, 255, 0.08);
+    --accent: #8B5CF6;
+    --accent-glow: rgba(139, 92, 246, 0.2);
+    --text-main: #FFFFFF;
+    --text-sub: #A1A1AA;
+    --success: #10B981;
+    --danger: #EF4444;
+    --font: 'Outfit', 'Inter', system-ui, sans-serif;
+    --transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.light {
+    --bg: #F9FAFB;
+    --card: #FFFFFF;
+    --border: rgba(0, 0, 0, 0.05);
+    --text-main: #111827;
+    --text-sub: #6B7280;
+    --accent-glow: rgba(139, 92, 246, 0.1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+
+body { background-color: var(--bg); color: var(--text-main); font-family: var(--font); transition: background-color var(--transition); overflow-x: hidden; }
+
+.premium-card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 24px; transition: all var(--transition); }
+
+.btn-glass { 
+    padding: 12px 24px; border-radius: 14px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); 
+    background: rgba(255,255,255,0.03); color: var(--text-main); transition: all var(--transition); display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+}
+.btn-glass:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+
+.modern-input { width: 100%; padding: 14px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 16px; color: var(--text-main); outline: none; transition: all var(--transition); font-family: inherit; }
+.modern-input:focus { border-color: var(--accent); background: rgba(139, 92, 246, 0.05); }
+
+/* Navigation */
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 74px; background: var(--card); border-top: 1px solid var(--border); display: none; align-items: center; justify-content: space-around; z-index: 2000; padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -10px 40px rgba(0,0,0,0.4); }
+.bottom-nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-sub); text-decoration: none; font-size: 11px; font-weight: 600; flex: 1; gap: 4px; transition: color 0.3s ease; cursor: pointer; }
+.bottom-nav-item i { font-size: 20px; transition: transform 0.3s; }
+.bottom-nav-item.active { color: var(--accent); }
+.bottom-nav-item.active i { transform: translateY(-2px); }
+
+@media (max-width: 1024px) {
+    .bottom-nav { display: flex; }
+}
+
+.animate-in { animation: slideIn 0.8s var(--transition) forwards; }
+@keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
