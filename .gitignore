@@ -5,6 +5,7 @@ includes/config.php
 
 # Database Backups
 *.sql
+!database.sql
 
 # Uploads and User Data
 uploads/avatars/*
