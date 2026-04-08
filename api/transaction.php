@@ -40,6 +40,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($amount > 0) {
         $stmt = $pdo->prepare("INSERT INTO transactions (user_id, amount, type, category_id, description, transaction_date) VALUES (?, ?, ?, ?, ?, ?)");
         $stmt->execute([$_SESSION['user_id'], $amount, $type, $category_id, $description, $date]);
+        
+        // Update pet streak
+        $pdo->exec("UPDATE user_pets SET streak_count = streak_count + 1, last_updated = CURDATE() WHERE user_id = {$_SESSION['user_id']}");
+        
         echo json_encode(['success' => true]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Invalid amount']);

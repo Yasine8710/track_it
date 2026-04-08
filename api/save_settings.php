@@ -11,6 +11,7 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $username = $_POST['username'] ?? '';
 $email = $_POST['email'] ?? '';
+$pet_id = $_POST['pet_id'] ?? $_GET['pet_id'] ?? null;
 
 // Handle Avatar Upload
 $profile_picture = null;
@@ -42,6 +43,19 @@ try {
         $stmt = $pdo->prepare("UPDATE users SET username = ?, email = ? WHERE id = ?");
         $stmt->execute([$username, $email, $user_id]);
     }
+    
+    // Handle pet selection
+    if ($pet_id !== null) {
+        if ($pet_id === '') {
+            // Remove pet
+            $pdo->prepare("DELETE FROM user_pets WHERE user_id = ?")->execute([$user_id]);
+        } else {
+            // Add or update pet
+            $stmt = $pdo->prepare("INSERT INTO user_pets (user_id, pet_id, streak_count) VALUES (?, ?, 0) ON DUPLICATE KEY UPDATE pet_id = VALUES(pet_id)");
+            $stmt->execute([$user_id, $pet_id]);
+        }
+    }
+    
     echo json_encode(['success' => true]);
 } catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Sync failed: ' . $e->getMessage()]);

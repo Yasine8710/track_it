@@ -22,9 +22,22 @@ $outflow = (float)($st2->fetch()['total'] ?? 0);
 
 $balance = $inflow - $outflow;
 
+// Fetch pet streak
+$petStreak = 0;
+$petEmoji = '';
+$stmtPet = $pdo->prepare("SELECT up.streak_count, p.emoji FROM user_pets up JOIN pets p ON up.pet_id = p.id WHERE up.user_id = ?");
+$stmtPet->execute([$user_id]);
+$petData = $stmtPet->fetch();
+if ($petData) {
+    $petStreak = $petData['streak_count'];
+    $petEmoji = $petData['emoji'];
+}
+
 echo json_encode([
     'success' => true,
     'balance' => number_format($balance, 2),
     'inflow' => number_format($inflow, 2),
-    'outflow' => number_format($outflow, 2)
+    'outflow' => number_format($outflow, 2),
+    'pet_streak' => $petStreak,
+    'pet_emoji' => $petEmoji
 ]);

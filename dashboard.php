@@ -59,6 +59,14 @@ $catStats = $stmtStats->fetchAll();
 $stmtCats = $pdo->prepare("SELECT * FROM categories WHERE user_id = ? OR user_id IS NULL");
 $stmtCats->execute([$user_id]);
 $userCats = $stmtCats->fetchAll();
+
+$stmtPets = $pdo->prepare("SELECT * FROM pets ORDER BY name");
+$stmtPets->execute();
+$allPets = $stmtPets->fetchAll();
+
+$stmtUserPet = $pdo->prepare("SELECT up.*, p.name, p.emoji FROM user_pets up JOIN pets p ON up.pet_id = p.id WHERE up.user_id = ?");
+$stmtUserPet->execute([$user_id]);
+$userPet = $stmtUserPet->fetch();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -138,6 +146,14 @@ $userCats = $stmtCats->fetchAll();
                 </div>
                 <div class="premium-card"><p style="color:var(--text-sub); font-size:12px; font-weight:700; text-transform:uppercase;">Monthly In</p><h2 id="dynamic-inflow" style="color:var(--success); font-family:'Outfit';">+$<?= number_format($inflowTotal, 2) ?></h2></div>
                 <div class="premium-card"><p style="color:var(--text-sub); font-size:12px; font-weight:700; text-transform:uppercase;">Monthly Out</p><h2 id="dynamic-outflow" style="color:var(--danger); font-family:'Outfit';">-$<?= number_format($outflowTotal, 2) ?></h2></div>
+                <?php if($userPet): ?>
+                <div class="premium-card" style="text-align:center;">
+                    <p style="color:var(--text-sub); font-size:12px; font-weight:700; text-transform:uppercase;">Pet Streak</p>
+                    <div style="font-size:48px; margin:10px 0;"><?= $userPet['emoji'] ?></div>
+                    <div style="font-weight:600; color:var(--text-main); margin-bottom:4px;"><?= htmlspecialchars($userPet['name']) ?></div>
+                    <div id="pet-streak-display" style="font-size:14px; color:var(--accent); font-weight:700;"><?= $userPet['streak_count'] ?> transactions</div>
+                </div>
+                <?php endif; ?>
             </section>
             
             <section>
@@ -271,6 +287,22 @@ $userCats = $stmtCats->fetchAll();
                         <div class="premium-input-group"><label>Visual Mode</label><select id="themeSelect" class="modern-input"><option value="dark">Obsidian Dark</option><option value="light">Crystal Light</option></select></div>
                     </div>
                     <div class="premium-card">
+                        <h3 style="margin-bottom:20px; font-family:'Outfit';">Pet Companion</h3>
+                        <div class="premium-input-group"><label>Choose Your Pet</label><select id="petSelect" class="modern-input">
+                            <option value="">No Pet</option>
+                            <?php foreach($allPets as $pet): ?>
+                                <option value="<?= $pet['id'] ?>" <?= $userPet && $userPet['pet_id'] == $pet['id'] ? 'selected' : '' ?>><?= $pet['emoji'] ?> <?= htmlspecialchars($pet['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select></div>
+                        <?php if($userPet): ?>
+                            <div style="margin-top:16px; padding:12px; background:var(--surface); border-radius:8px; text-align:center;">
+                                <div style="font-size:32px; margin-bottom:8px;"><?= $userPet['emoji'] ?></div>
+                                <div style="font-weight:600; color:var(--text-main);"><?= htmlspecialchars($userPet['name']) ?></div>
+                                <div id="settings-pet-streak" style="font-size:12px; color:var(--text-sub); margin-top:4px;">Streak: <?= $userPet['streak_count'] ?> transactions</div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="premium-card">
                         <h3 style="margin-bottom:20px; font-family:'Outfit';">Category Vault</h3>
                         <div style="display:flex; gap:10px; margin-bottom:24px;"><input type="text" id="newCatName" class="modern-input" placeholder="Name..."><button onclick="addCategory()" class="btn-glass" style="width:48px; justify-content:center;"><i class="fas fa-plus"></i></button></div>
                         <div id="cat-list">
@@ -300,6 +332,14 @@ $userCats = $stmtCats->fetchAll();
                     document.getElementById('dynamic-balance').innerText = '$' + data.balance;
                     document.getElementById('dynamic-inflow').innerText = '+$' + data.inflow;
                     document.getElementById('dynamic-outflow').innerText = '-$' + data.outflow;
+                    const petStreakEl = document.getElementById('pet-streak-display');
+                    if(petStreakEl && data.pet_streak !== undefined) {
+                        petStreakEl.innerText = data.pet_streak + ' transactions';
+                    }
+                    const settingsPetStreakEl = document.getElementById('settings-pet-streak');
+                    if(settingsPetStreakEl && data.pet_streak !== undefined) {
+                        settingsPetStreakEl.innerText = 'Streak: ' + data.pet_streak + ' transactions';
+                    }
                 }
             } catch(e) { console.error('Sync failed', e); }
         }
@@ -395,10 +435,22 @@ $userCats = $stmtCats->fetchAll();
             if((await res.json()).success) { alert('Synced.'); location.reload(); }
         };
 
-        document.getElementById('themeSelect').onchange = (e) => { document.documentElement.className = e.target.value; localStorage.setItem('theme', e.target.value); };
+        document.getElementById('petSelect').onchange = async (e) => {
+            const petId = e.target.value;
+            const res = await fetch('api/save_settings.php', { method: 'POST', body: new URLSearchParams({ pet_id: petId }) });
+            if((await res.json()).success) location.reload();
+        };
+
+        const themeSelect = document.getElementById('themeSelect');
+        const applyTheme = (theme) => {
+            document.documentElement.classList.toggle('light', theme === 'light');
+            document.documentElement.classList.toggle('dark', theme === 'dark');
+            localStorage.setItem('theme', theme);
+        };
+        themeSelect.onchange = (e) => applyTheme(e.target.value);
         const savedTheme = localStorage.getItem('theme') || 'dark';
-        document.documentElement.className = savedTheme;
-        document.getElementById('themeSelect').value = savedTheme;
+        themeSelect.value = savedTheme;
+        applyTheme(savedTheme);
 
         const voiceBtn = document.getElementById('voice-btn');
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
