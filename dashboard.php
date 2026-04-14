@@ -59,14 +59,6 @@ $catStats = $stmtStats->fetchAll();
 $stmtCats = $pdo->prepare("SELECT * FROM categories WHERE user_id = ? OR user_id IS NULL");
 $stmtCats->execute([$user_id]);
 $userCats = $stmtCats->fetchAll();
-
-$stmtPets = $pdo->prepare("SELECT * FROM pets ORDER BY name");
-$stmtPets->execute();
-$allPets = $stmtPets->fetchAll();
-
-$stmtUserPet = $pdo->prepare("SELECT up.*, p.name, p.emoji FROM user_pets up JOIN pets p ON up.pet_id = p.id WHERE up.user_id = ?");
-$stmtUserPet->execute([$user_id]);
-$userPet = $stmtUserPet->fetch();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -141,19 +133,11 @@ $userPet = $stmtUserPet->fetch();
             <section class="stat-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 40px;">
                 <div class="premium-card" style="background: linear-gradient(135deg, var(--accent) 0%, #4c1d95 100%); color: #000;">
                     <p style="font-size:12px; font-weight:700; text-transform:uppercase; opacity:0.8;">Total Balance</p>
-                    <div style="display:flex; align-items:center; gap:10px;"><h1 id="dynamic-balance" style="font-family:'Outfit'; font-size:42px; margin:10px 0;">$<?= number_format($calculatedBalance, 2) ?></h1><i class="fas fa-plus-circle" onclick="openBalanceEdit()" style="cursor:pointer; font-size:16px; opacity:0.6;"></i></div>
+                    <div style="display:flex; align-items:center; gap:10px;"><h1 id="dynamic-balance" style="font-family:'Outfit'; font-size:42px; margin:10px 0;"><?= $calculatedBalance < 0 ? '-' : '' ?>$<?= number_format(abs($calculatedBalance), 2) ?></h1><i class="fas fa-plus-circle" onclick="openBalanceEdit()" style="cursor:pointer; font-size:16px; opacity:0.6;"></i></div>
                     <div style="font-size:11px; background:rgba(255,255,255,0.2); padding:4px 8px; border-radius:6px; display:inline-block;">Live Sync</div>
                 </div>
                 <div class="premium-card"><p style="color:var(--text-sub); font-size:12px; font-weight:700; text-transform:uppercase;">Monthly In</p><h2 id="dynamic-inflow" style="color:var(--success); font-family:'Outfit';">+$<?= number_format($inflowTotal, 2) ?></h2></div>
                 <div class="premium-card"><p style="color:var(--text-sub); font-size:12px; font-weight:700; text-transform:uppercase;">Monthly Out</p><h2 id="dynamic-outflow" style="color:var(--danger); font-family:'Outfit';">-$<?= number_format($outflowTotal, 2) ?></h2></div>
-                <?php if($userPet): ?>
-                <div class="premium-card" style="text-align:center;">
-                    <p style="color:var(--text-sub); font-size:12px; font-weight:700; text-transform:uppercase;">Pet Streak</p>
-                    <div style="font-size:48px; margin:10px 0;"><?= $userPet['emoji'] ?></div>
-                    <div style="font-weight:600; color:var(--text-main); margin-bottom:4px;"><?= htmlspecialchars($userPet['name']) ?></div>
-                    <div id="pet-streak-display" style="font-size:14px; color:var(--accent); font-weight:700;"><?= $userPet['streak_count'] ?> transactions</div>
-                </div>
-                <?php endif; ?>
             </section>
             
             <section>
@@ -167,14 +151,21 @@ $userPet = $stmtUserPet->fetch();
                     </div>
                     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:12px;">
                         <input type="number" id="quickAmount" class="modern-input" placeholder="0.00">
-                        <select id="quickCat" class="modern-input">
-                            <option value="">Category...</option>
+                        <div id="quickCatContainer" style="grid-column: 1 / -1; display:flex; flex-wrap:wrap; gap:8px;">
+                            <input type="hidden" id="quickCat" value="">
                             <?php foreach($userCats as $c): ?>
-                                <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['name']) ?></option>
+                                <div class="cat-chip" onclick="selectQuickCat(this, <?= $c['id'] ?>)" style="padding:8px 16px; border-radius:20px; background:var(--surface); border:1px solid var(--border); font-size:13px; font-weight:600; cursor:pointer; color:var(--text-sub); transition:all 0.2s;">
+                                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:<?= $c['color'] ?>; margin-right:6px;"></span>
+                                    <?= htmlspecialchars($c['name']) ?>
+                                </div>
                             <?php endforeach; ?>
-                        </select>
-                        <input type="text" id="quickDesc" class="modern-input" placeholder="Memo...">
-                        <button onclick="saveQuickEntry()" id="qe-btn" class="btn-glass" style="background:var(--accent); color:#000; justify-content:center; border:none; font-weight:700;">Log Expense</button>
+                        </div>
+                        <div id="splitIncomeContainer" style="display:none; align-items:center; gap:8px; grid-column: 1 / -1;">
+                              <input type="checkbox" id="splitIncomeToggle" style="width:auto; transform:scale(1.5);">
+                              <label for="splitIncomeToggle" style="font-size:14px; cursor:pointer;">Split Income automatically</label>
+                            </div>                        
+                          <input type="text" id="quickDesc" class="modern-input" placeholder="Memo..." style="grid-column: 1 / -1;">
+                          <button onclick="saveQuickEntry()" id="qe-btn" class="btn-glass" style="background:var(--accent); color:#000; justify-content:center; border:none; font-weight:700; grid-column: 1 / -1; padding: 16px;">Log Expense</button>
                     </div>
                 </div>
 
@@ -287,27 +278,22 @@ $userPet = $stmtUserPet->fetch();
                         <div class="premium-input-group"><label>Visual Mode</label><select id="themeSelect" class="modern-input"><option value="dark">Obsidian Dark</option><option value="light">Crystal Light</option></select></div>
                     </div>
                     <div class="premium-card">
-                        <h3 style="margin-bottom:20px; font-family:'Outfit';">Pet Companion</h3>
-                        <div class="premium-input-group"><label>Choose Your Pet</label><select id="petSelect" class="modern-input">
-                            <option value="">No Pet</option>
-                            <?php foreach($allPets as $pet): ?>
-                                <option value="<?= $pet['id'] ?>" <?= $userPet && $userPet['pet_id'] == $pet['id'] ? 'selected' : '' ?>><?= $pet['emoji'] ?> <?= htmlspecialchars($pet['name']) ?></option>
-                            <?php endforeach; ?>
-                        </select></div>
-                        <?php if($userPet): ?>
-                            <div style="margin-top:16px; padding:12px; background:var(--surface); border-radius:8px; text-align:center;">
-                                <div style="font-size:32px; margin-bottom:8px;"><?= $userPet['emoji'] ?></div>
-                                <div style="font-weight:600; color:var(--text-main);"><?= htmlspecialchars($userPet['name']) ?></div>
-                                <div id="settings-pet-streak" style="font-size:12px; color:var(--text-sub); margin-top:4px;">Streak: <?= $userPet['streak_count'] ?> transactions</div>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                    <div class="premium-card">
-                        <h3 style="margin-bottom:20px; font-family:'Outfit';">Category Vault</h3>
-                        <div style="display:flex; gap:10px; margin-bottom:24px;"><input type="text" id="newCatName" class="modern-input" placeholder="Name..."><button onclick="addCategory()" class="btn-glass" style="width:48px; justify-content:center;"><i class="fas fa-plus"></i></button></div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                            <h3 style="margin-bottom:0; font-family:'Outfit';">Category Vault</h3>
+                            <button onclick="openCategoryModal()" class="btn-glass" style="padding:4px 12px; font-size:12px; background:rgba(255,255,255,0.1);"><i class="fas fa-plus"></i> Add</button>
+                        </div>
                         <div id="cat-list">
                             <?php foreach($userCats as $cat): ?>
-                                <div class="cat-item"><span style="display:flex; align-items:center; gap:10px;"><div style="width:12px; height:12px; border-radius:3px; background:<?= $cat['color'] ?>;"></div><?= htmlspecialchars($cat['name']) ?></span><?php if($cat['user_id']): ?><i class="fas fa-trash-alt" style="color:var(--danger); cursor:pointer; opacity:0.6;" onclick="delCategory(<?= $cat['id'] ?>)"></i><?php endif; ?></div>
+                                <div class="cat-item" style="display:flex; align-items:center; justify-content:space-between; gap:10px;" id="cat-row-<?= $cat['id'] ?>">
+                                    <span style="display:flex; align-items:center; gap:10px; flex:1;">
+                                        <div style="width:12px; height:12px; border-radius:3px; background:<?= $cat['color'] ?>;"></div>
+                                        <input type="text" value="<?= htmlspecialchars($cat['name']) ?>" class="modern-input" style="padding:4px 8px; font-size:14px; background:transparent; border:none; width: 100%;" onchange="updateCategory(<?= $cat['id'] ?>, this.value, document.getElementById('cat-pct-<?= $cat['id'] ?>').value)" <?= !$cat['user_id'] ? 'readonly' : '' ?>>
+                                    </span>
+                                    <span style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+                                        <input type="number" id="cat-pct-<?= $cat['id'] ?>" value="<?= htmlspecialchars($cat['percentage']) ?>" class="modern-input" style="padding:4px 8px; font-size:14px; width:65px; background:transparent; border:1px solid rgba(255,255,255,0.1);" min="0" max="100" onchange="updateCategory(<?= $cat['id'] ?>, document.querySelector('#cat-row-<?= $cat['id'] ?> input[type=text]').value, this.value)" <?= !$cat['user_id'] ? 'readonly' : '' ?>> %
+                                    </span>
+                                    <?php if($cat['user_id']): ?><i class="fas fa-trash-alt" style="color:var(--danger); cursor:pointer; opacity:0.6;" onclick="delCategory(<?= $cat['id'] ?>)"></i><?php endif; ?>
+                                </div>
                             <?php endforeach; ?>
                         </div>
                     </div>
@@ -318,6 +304,25 @@ $userPet = $stmtUserPet->fetch();
 
     <div id="balModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9000; align-items:center; justify-content:center;">
         <div class="premium-card" style="width:90%; max-width:380px;"><h3 style="margin-bottom:20px; font-family:'Outfit';">Manual Adjustment</h3><p style="font-size:12px; color:var(--text-sub); margin-bottom:15px;">Set your desired balance entry.</p><input type="number" id="newBal" step="0.01" class="modern-input" placeholder="0.00"><div style="display:flex; gap:12px; margin-top:30px;"><button onclick="closeBalanceModal()" class="btn-glass" style="flex:1;">Cancel</button><button onclick="saveManualBalance()" class="btn-glass" style="flex:1; background:var(--accent); color:#000;">Add Entry</button></div></div>
+    </div>
+
+    <div id="catModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9000; align-items:center; justify-content:center;">
+        <div class="premium-card" style="width:90%; max-width:380px;">
+            <h3 style="margin-bottom:20px; font-family:'Outfit';">Add New Category</h3>
+            <p style="font-size:12px; color:var(--text-sub); margin-bottom:15px;">Create a new category with a custom split percentage and color.</p>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                <input type="text" id="modalCatName" class="modern-input" placeholder="Category Name...">
+                <input type="number" id="modalCatPercent" class="modern-input" placeholder="Percentage Split (0-100)%" min="0" max="100">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <label style="font-size:14px; color:var(--text-main);">Color Marker:</label>
+                    <input type="color" id="modalCatColor" value="#3b82f6" style="width:100%; height:40px; border:none; border-radius:8px; background:transparent; cursor:pointer;">
+                </div>
+            </div>
+            <div style="display:flex; gap:12px; margin-top:30px;">
+                <button onclick="closeCategoryModal()" class="btn-glass" style="flex:1;">Cancel</button>
+                <button onclick="addCategoryUI()" class="btn-glass" style="flex:1; background:var(--accent); color:#000;">Create</button>
+            </div>
+        </div>
     </div>
 
     <div class="voice-fab" id="voice-btn"><i class="fas fa-microphone"></i></div>
@@ -332,16 +337,20 @@ $userPet = $stmtUserPet->fetch();
                     document.getElementById('dynamic-balance').innerText = '$' + data.balance;
                     document.getElementById('dynamic-inflow').innerText = '+$' + data.inflow;
                     document.getElementById('dynamic-outflow').innerText = '-$' + data.outflow;
-                    const petStreakEl = document.getElementById('pet-streak-display');
-                    if(petStreakEl && data.pet_streak !== undefined) {
-                        petStreakEl.innerText = data.pet_streak + ' transactions';
-                    }
-                    const settingsPetStreakEl = document.getElementById('settings-pet-streak');
-                    if(settingsPetStreakEl && data.pet_streak !== undefined) {
-                        settingsPetStreakEl.innerText = 'Streak: ' + data.pet_streak + ' transactions';
-                    }
                 }
             } catch(e) { console.error('Sync failed', e); }
+        }
+
+        function selectQuickCat(element, id) {
+            document.querySelectorAll('.cat-chip').forEach(el => {
+                el.style.border = '1px solid var(--border)';
+                el.style.color = 'var(--text-sub)';
+                el.style.background = 'var(--surface)';
+            });
+            element.style.border = '1px solid var(--accent)';
+            element.style.color = 'var(--text-main)';
+            element.style.background = 'rgba(255,255,255,0.05)';
+            document.getElementById('quickCat').value = id;
         }
 
         function setQEType(type) {
@@ -349,18 +358,30 @@ $userPet = $stmtUserPet->fetch();
             document.querySelectorAll('.qe-tab').forEach(t => t.classList.remove('active'));
             document.getElementById('qe-tab-' + type).classList.add('active');
             document.getElementById('qe-btn').innerText = 'Log ' + (type === 'inflow' ? 'Income' : 'Expense');
+            
+            const catSelect = document.getElementById('quickCatContainer');
+            const splitContainer = document.getElementById('splitIncomeContainer');
+            
+            if (type === 'inflow') {
+                catSelect.style.display = 'none';
+                if (splitContainer) splitContainer.style.display = 'flex';
+            } else {
+                catSelect.style.display = 'flex';
+                splitContainer.style.display = 'none';
+            }
         }
 
         async function saveQuickEntry() {
             const amount = document.getElementById('quickAmount').value;
             const catId = document.getElementById('quickCat').value;
             const desc = document.getElementById('quickDesc').value;
+            const split = document.getElementById('splitIncomeToggle') ? document.getElementById('splitIncomeToggle').checked : false;
             if(!amount) return alert('Enter amount');
             if(qeType === 'outflow' && !catId) return alert('Select category for expense');
             const res = await fetch('api/transaction.php', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: parseFloat(amount), category_id: catId, description: desc, type: qeType }) 
+                body: JSON.stringify({ amount: parseFloat(amount), category_id: catId, description: desc, type: qeType, split: split }) 
             });
             const result = await res.json();
             if(result.success) { syncStats().then(() => { document.getElementById('quickAmount').value = ''; document.getElementById('quickDesc').value = ''; setTimeout(() => location.reload(), 1500); }); }
@@ -389,11 +410,9 @@ $userPet = $stmtUserPet->fetch();
             chart = new Chart(ctx, { type: 'doughnut', data: data, options: { cutout: '75%', plugins: { legend: { position: 'bottom', labels: { color: '#fff', padding: 20 } } } } });
         }
 
-        async function addCategory() {
-            const name = document.getElementById('newCatName').value;
+        async function updateCategory(id, name, percent) {
             if(!name) return;
-            const res = await fetch('api/categories.php', { method: 'POST', body: JSON.stringify({ name }) });
-            if((await res.json()).success) location.reload();
+            await fetch('api/categories.php', { method: 'POST', body: JSON.stringify({ id: id, name: name, percentage: parseFloat(percent) || 0 }) });
         }
         async function delCategory(id) {
             if(confirm('Delete?')) fetch('api/categories.php?id='+id, { method: 'DELETE' }).then(() => location.reload());
@@ -422,6 +441,27 @@ $userPet = $stmtUserPet->fetch();
 
         function openBalanceEdit() { document.getElementById('balModal').style.display = 'flex'; }
         function closeBalanceModal() { document.getElementById('balModal').style.display = 'none'; }
+        
+        function openCategoryModal() {
+            document.getElementById('modalCatName').value = '';
+            document.getElementById('modalCatPercent').value = '';
+            document.getElementById('modalCatColor').value = '#3b82f6';
+            document.getElementById('catModal').style.display = 'flex'; 
+        }
+        function closeCategoryModal() { document.getElementById('catModal').style.display = 'none'; }
+
+        async function addCategoryUI() {
+            const name = document.getElementById('modalCatName').value;
+            const percent = document.getElementById('modalCatPercent').value || 0;
+            const color = document.getElementById('modalCatColor').value;
+            if(!name) return alert('Category Name is required.');
+            const res = await fetch('api/categories.php', { 
+                method: 'POST', 
+                body: JSON.stringify({ name: name, percentage: parseFloat(percent), color: color }) 
+            });
+            if((await res.json()).success) location.reload();
+        }
+
         async function saveManualBalance() {
             const val = document.getElementById('newBal').value;
             if(!val) return;
@@ -435,11 +475,6 @@ $userPet = $stmtUserPet->fetch();
             if((await res.json()).success) { alert('Synced.'); location.reload(); }
         };
 
-        document.getElementById('petSelect').onchange = async (e) => {
-            const petId = e.target.value;
-            const res = await fetch('api/save_settings.php', { method: 'POST', body: new URLSearchParams({ pet_id: petId }) });
-            if((await res.json()).success) location.reload();
-        };
 
         const themeSelect = document.getElementById('themeSelect');
         const applyTheme = (theme) => {

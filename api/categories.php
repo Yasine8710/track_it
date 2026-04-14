@@ -17,12 +17,35 @@ if ($method === 'GET') {
     echo json_encode(['success' => true, 'categories' => $stmt->fetchAll()]);
 } elseif ($method === 'POST') {
     $data = json_decode(file_get_contents('php://input'), true);
-    $name = $data['name'] ?? '';
-    if (!empty($name)) {
-        $stmt = $pdo->prepare("INSERT INTO categories (user_id, name, color) VALUES (?, ?, ?)");
-        $color = sprintf('#%06X', mt_rand(0, 0xFFFFFF));
-        $stmt->execute([$user_id, $name, $color]);
-        echo json_encode(['success' => true]);
+    if (isset($data['id'])) {
+        // Update existing category
+        $id = $data['id'];
+        $name = $data['name'] ?? null;
+        $percentage = $data['percentage'] ?? null;
+        
+        if ($name !== null && $percentage !== null) {
+            $stmt = $pdo->prepare("UPDATE categories SET name = ?, percentage = ? WHERE id = ? AND user_id = ?");
+            $stmt->execute([$name, $percentage, $id, $user_id]);
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Missing data']);
+        }
+    } else {
+        // Add new category
+        $name = $data['name'] ?? '';
+        $percentage = $data['percentage'] ?? 0;
+        $color = $data['color'] ?? '';
+        
+        if (!empty($name)) {
+            $stmt = $pdo->prepare("INSERT INTO categories (user_id, name, percentage, color) VALUES (?, ?, ?, ?)");
+            if (empty($color)) {
+                $color = sprintf('#%06X', mt_rand(0, 0xFFFFFF));
+            }
+            $stmt->execute([$user_id, $name, $percentage, $color]);
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Name cannot be empty']);
+        }
     }
 } elseif ($method === 'DELETE') {
     $id = $_GET['id'] ?? null;

@@ -35,7 +35,7 @@ if ($petData) {
 
 echo json_encode([
     'success' => true,
-    'balance' => number_format($balance, 2),
+    'balance' => ($balance < 0 ? '-' : '') . number_format(abs($balance), 2),
     'inflow' => number_format($inflow, 2),
     'outflow' => number_format($outflow, 2),
     'pet_streak' => $petStreak,

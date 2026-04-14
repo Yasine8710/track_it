@@ -38,6 +38,11 @@ foreach ($incomeKeywords as $kw) {
     }
 }
 
+$split = false;
+if ($type === 'inflow' && (strpos($transcript, 'split') !== false || strpos($transcript, 'divide') !== false)) {
+    $split = true;
+}
+
 // 3. Match Category
 $stmt = $pdo->prepare("SELECT id, name FROM categories WHERE user_id = ? OR user_id IS NULL");
 $stmt->execute([$user_id]);
@@ -58,9 +63,62 @@ if (!$bestCategoryId && !empty($categories)) {
 
 // 4. Save Transaction
 try {
-    $stmt = $pdo->prepare("INSERT INTO transactions (user_id, category_id, amount, type, description, transaction_date) VALUES (?, ?, ?, ?, ?, NOW())");
-    $stmt->execute([$user_id, $bestCategoryId, $amount, $type, "Voice: " . $transcript]);
-    echo json_encode(['success' => true, 'message' => "Logged $type of $$amount"]);
+    if ($type === 'outflow') {
+        $stIn = $pdo->prepare("SELECT SUM(amount) as t FROM transactions WHERE user_id = ? AND type = 'inflow'");
+        $stIn->execute([$user_id]);
+        $in = floatval($stIn->fetch()['t'] ?? 0);
+
+        $stOut = $pdo->prepare("SELECT SUM(amount) as t FROM transactions WHERE user_id = ? AND type = 'outflow'");
+        $stOut->execute([$user_id]);
+        $out = floatval($stOut->fetch()['t'] ?? 0);
+
+        if ($amount > ($in - $out)) {
+            echo json_encode(['success' => false, 'message' => "Cannot log $$amount expense. You only have $" . number_format($in - $out, 2) . " left."]);
+            exit;
+        }
+    }
+
+    if ($type === 'inflow' && $split) {
+        $stmt = $pdo->prepare("SELECT id, name, percentage FROM categories WHERE (user_id = ? OR user_id IS NULL) AND percentage > 0");
+        $stmt->execute([$user_id]);
+        $categoriesByPercent = $stmt->fetchAll();
+        
+        $totalAssignedPercent = 0;
+        foreach ($categoriesByPercent as $cat) {
+            $totalAssignedPercent += $cat['percentage'];
+        }
+        
+        if ($totalAssignedPercent > 0) {
+            foreach ($categoriesByPercent as $cat) {
+                $splitAmount = ($amount * $cat['percentage']) / 100;
+                if ($splitAmount > 0) {
+                    $catName = htmlspecialchars($cat['name']);
+                    $descText = "Voice: " . trim($transcript) . " - " . $catName . " (" . floatval($cat['percentage']) . "%)";
+                    $stmt = $pdo->prepare("INSERT INTO transactions (user_id, amount, type, category_id, description, transaction_date) VALUES (?, ?, ?, ?, ?, NOW())");
+                    $stmt->execute([$user_id, $splitAmount, $type, $cat['id'], $descText]);
+                }
+            }
+            
+            // If percentages don't add up to 100%, put the remaining in a general Inflow
+            if ($totalAssignedPercent < 100) {
+                $remainingPercent = 100 - $totalAssignedPercent;
+                $remainingAmount = ($amount * $remainingPercent) / 100;
+                if ($remainingAmount > 0) {
+                    $stmt = $pdo->prepare("INSERT INTO transactions (user_id, amount, type, category_id, description, transaction_date) VALUES (?, ?, ?, ?, ?, NOW())");
+                    $stmt->execute([$user_id, $remainingAmount, $type, null, "Voice: " . $transcript . " (Unassigned Split)"]);
+                }
+            }
+            echo json_encode(['success' => true, 'message' => "Logged and split $type of $$amount"]);
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO transactions (user_id, category_id, amount, type, description, transaction_date) VALUES (?, ?, ?, ?, ?, NOW())");
+            $stmt->execute([$user_id, null, $amount, $type, "Voice: " . $transcript]);
+            echo json_encode(['success' => true, 'message' => "Logged $type of $$amount"]);
+        }
+    } else {
+        $stmt = $pdo->prepare("INSERT INTO transactions (user_id, category_id, amount, type, description, transaction_date) VALUES (?, ?, ?, ?, ?, NOW())");
+        $stmt->execute([$user_id, $bestCategoryId, $amount, $type, "Voice: " . $transcript]);
+        echo json_encode(['success' => true, 'message' => "Logged $type of $$amount"]);
+    }
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
