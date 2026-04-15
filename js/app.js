@@ -571,31 +571,20 @@ function setupVoiceRecognition() {
 
     if (micBtn) {
         micBtn.addEventListener('click', () => {
-            voiceRecognition.start();
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-            micBtn.classList.add('recording-active');
-            if (statusText) {
-                statusText.style.display = 'block';
-                statusText.innerHTML = '<span class="text-white font-bold animate-pulse">Listening...</span>';
+            try {
+                voiceRecognition.start();
+                micBtn.classList.add('recording-active');
+                if (statusText) {
+                    statusText.style.display = 'block';
+                    statusText.innerHTML = '<span class="text-white font-bold animate-pulse">Listening...</span>';
+                }
+            } catch (e) {
+                console.error("Voice start error:", e);
             }
         });
 
         voiceRecognition.onresult = async (event) => {
             micBtn.classList.remove('recording-active');
-=======
-=======
->>>>>>> Stashed changes
-            micBtn.classList.add('active'); statusText.style.display = 'block';
-            statusText.innerHTML = '<span class="text-white font-bold animate-pulse">Listening...</span>';
-        });
-
-        voiceRecognition.onresult = async (event) => {
-            micBtn.classList.remove('active');
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
             const transcript = event.results[0][0].transcript;
             if (statusText) statusText.textContent = `Processing: "${transcript}"...`;
             
@@ -603,15 +592,7 @@ function setupVoiceRecognition() {
                 const res = await fetch('api/process_voice.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
                     body: JSON.stringify({ transcript: transcript })
-=======
-                      body: JSON.stringify({ transcript: transcript })
->>>>>>> Stashed changes
-=======
-                      body: JSON.stringify({ transcript: transcript })
->>>>>>> Stashed changes
                 });
                 const result = await res.json();
                 
@@ -640,28 +621,16 @@ function setupVoiceRecognition() {
         };
         
         voiceRecognition.onerror = (e) => {
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
             micBtn.classList.remove('recording-active');
             console.error("Speech Recognition Error:", e.error);
             if (statusText) statusText.textContent = `Voice error: ${e.error}. Try again.`;
         };
 
         voiceRecognition.onend = () => {
-             micBtn.classList.remove('recording-active');
-=======
-=======
->>>>>>> Stashed changes
-            micBtn.classList.remove('active');
-            statusText.textContent = "Voice error. Try again.";
-        };
-
-        voiceRecognition.onend = () => {
-             micBtn.classList.remove('active');
-             if (statusText.textContent === "Listening...") {
-                 statusText.innerHTML = '<span class="w-1.5 h-1.5 bg-white rounded-full mr-2 animate-pulse"></span>Ready to listen...';
-             }
->>>>>>> Stashed changes
+            micBtn.classList.remove('recording-active');
+            if (statusText && statusText.textContent === "Listening...") {
+                statusText.innerHTML = '<span class="w-1.5 h-1.5 bg-white rounded-full mr-2 animate-pulse"></span>Ready to listen...';
+            }
         };
     }
 }
