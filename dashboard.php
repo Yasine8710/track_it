@@ -523,9 +523,15 @@ $userCurrency = $user['currency'] ?? 'USD';
                 const data = await res.json();
                 if(data.success) {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                     document.getElementById('dynamic-balance').innerText = getFormattedMoney(data.balance);
                     document.getElementById('dynamic-inflow').innerText = '+' + getFormattedMoney(data.inflow);
                     document.getElementById('dynamic-outflow').innerText = '-' + getFormattedMoney(data.outflow);
+=======
+                    document.getElementById('dynamic-balance').innerText = formatCurrency(data.balance);
+                    document.getElementById('dynamic-inflow').innerText = '+' + formatCurrency(data.inflow);
+                    document.getElementById('dynamic-outflow').innerText = '-' + formatCurrency(data.outflow);
+>>>>>>> Stashed changes
 =======
                     document.getElementById('dynamic-balance').innerText = formatCurrency(data.balance);
                     document.getElementById('dynamic-inflow').innerText = '+' + formatCurrency(data.inflow);
@@ -612,8 +618,13 @@ $userCurrency = $user['currency'] ?? 'USD';
                     </div>
                     <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:600; margin-bottom:20px;">
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                         <span style="color:${isCompleted ? 'var(--success)' : 'var(--success)'};">${getFormattedMoney(parseFloat(w.current_amount))}</span>
                         <span style="color:var(--text-sub);">Goal: ${getFormattedMoney(parseFloat(w.target_amount))}</span>
+=======
+                        <span style="color:${isCompleted ? 'var(--success)' : 'var(--success)'};">${formatCurrency(parseFloat(w.current_amount))}</span>
+                        <span style="color:var(--text-sub);">Goal: ${formatCurrency(parseFloat(w.target_amount))}</span>
+>>>>>>> Stashed changes
 =======
                         <span style="color:${isCompleted ? 'var(--success)' : 'var(--success)'};">${formatCurrency(parseFloat(w.current_amount))}</span>
                         <span style="color:var(--text-sub);">Goal: ${formatCurrency(parseFloat(w.target_amount))}</span>
@@ -659,7 +670,11 @@ $userCurrency = $user['currency'] ?? 'USD';
             if(amt && !isNaN(amt) && amt > 0) {
                 if (amt > max) {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                     alert('You cannot exceed the target goal! Maximum allowed to complete this wish is ' + getFormattedMoney(max));
+=======
+                    alert('You cannot exceed the target goal! Maximum allowed to complete this wish is ' + formatCurrency(max));
+>>>>>>> Stashed changes
 =======
                     alert('You cannot exceed the target goal! Maximum allowed to complete this wish is ' + formatCurrency(max));
 >>>>>>> Stashed changes
@@ -756,7 +771,11 @@ $userCurrency = $user['currency'] ?? 'USD';
                     const cls = total >= 0 ? 'flow-positive' : 'flow-negative';
                     const sign = total >= 0 ? '+' : '';
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                     html += `<div class="calendar-event ${cls}">${sign}${getFormattedMoney(Math.abs(total))}</div>`;
+=======
+                    html += `<div class="calendar-event ${cls}">${sign}${formatCurrency(Math.abs(total))}</div>`;
+>>>>>>> Stashed changes
 =======
                     html += `<div class="calendar-event ${cls}">${sign}${formatCurrency(Math.abs(total))}</div>`;
 >>>>>>> Stashed changes
@@ -814,7 +833,11 @@ $userCurrency = $user['currency'] ?? 'USD';
                                 <div style="width:32px; height:32px; border-radius:8px; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; color:${color};"><i class="fas ${getCatIconJS(op.cat_name)}"></i></div>
                                 <div>
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                                     <div style="font-weight:600; color:${color}">${sign}${getFormattedMoney(parseFloat(op.amount))}</div>
+=======
+                                    <div style="font-weight:600; color:${color}">${sign}${formatCurrency(parseFloat(op.amount))}</div>
+>>>>>>> Stashed changes
 =======
                                     <div style="font-weight:600; color:${color}">${sign}${formatCurrency(parseFloat(op.amount))}</div>
 >>>>>>> Stashed changes
