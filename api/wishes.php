@@ -35,11 +35,29 @@ if ($method === 'GET') {
     $amount = floatval($data['amount'] ?? 0);
     
     if ($id && $amount > 0) {
-        $stmt = $pdo->prepare("UPDATE wishes SET current_amount = current_amount + ? WHERE id = ? AND user_id = ?");
-        $stmt->execute([$amount, $id, $user_id]);
-        echo json_encode(['success' => true]);
+        try {
+            $pdo->beginTransaction();
+            // Update wish amount
+            $stmt = $pdo->prepare("UPDATE wishes SET current_amount = current_amount + ? WHERE id = ? AND user_id = ?");
+            $stmt->execute([$amount, $id, $user_id]);
+            
+            // Get wish info for context
+            $stmtWish = $pdo->prepare("SELECT title FROM wishes WHERE id = ?");
+            $stmtWish->execute([$id]);
+            $wishTitle = $stmtWish->fetchColumn() ?: "Wish";
+            
+            // Create corresponding expense transaction to deduct from balance implicitly
+            $stmtTx = $pdo->prepare("INSERT INTO transactions (user_id, amount, description, type, transaction_date) VALUES (?, ?, ?, 'outflow', CURRENT_DATE())");
+            $stmtTx->execute([$user_id, $amount, "Funded Wish: " . $wishTitle]);
+            
+            $pdo->commit();
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            echo json_encode(['success' => false, 'message' => 'Failed to fund wish']);
+        }
     } else {
-        echo json_encode(['success' => false, 'message' => 'Invalid update']);
+        echo json_encode(['success' => false, 'message' => 'Invalid data']);
     }
 } elseif ($method === 'DELETE') {
     $id = $_GET['id'] ?? null;

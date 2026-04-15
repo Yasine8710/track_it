@@ -7,6 +7,20 @@ if (!isset($_SESSION['user_id'])) {
 }
 require_once 'includes/db.php';
 
+function formatMoney($amount, $currency = 'USD') {
+    $symbols = [
+        'USD' => '$',
+        'EUR' => '€',
+        'TND' => 'DT', // TND symbol
+        'GBP' => '£',
+        'CAD' => 'CA$',
+        'AUD' => 'A$',
+        'JPY' => '¥'
+    ];
+    $symbol = $symbols[$currency] ?? $currency . ' ';
+    return $symbol . number_format((float)$amount, 2);
+}
+
 function getCategoryIcon($name) {
     if (!$name) return 'fa-tag';
     $name = strtolower($name);
@@ -78,6 +92,7 @@ $stmtCats = $pdo->prepare("SELECT * FROM categories WHERE user_id = ? OR user_id
 $stmtCats->execute([$user_id]);
 $userCats = $stmtCats->fetchAll();
 
+$userCurrency = $user['currency'] ?? 'USD';
 
 ?>
 <!DOCTYPE html>
@@ -92,6 +107,7 @@ $userCats = $stmtCats->fetchAll();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>const USER_CURRENCY = '<?= $userCurrency ?>';</script>
     <script src="js/app.js" defer></script>
     <style>
         .sidebar { width: 280px; height: 100vh; position: fixed; left: 0; top: 0; background: var(--bg); border-right: 1px solid var(--border); padding: 40px 24px; transition: transform 0.3s; z-index: 1000; }
@@ -192,7 +208,25 @@ $userCats = $stmtCats->fetchAll();
         .wish-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 20px; position: relative; overflow: hidden; }
         .wish-progress-bg { width: 100%; height: 8px; background: rgba(0,0,0,0.2); border-radius: 8px; margin: 16px 0; overflow: hidden; }
         .wish-progress-fill { height: 100%; background: var(--accent); border-radius: 8px; transition: width 0.5s ease; }
+        @keyframes emojiPop {
+            0% { opacity: 0; transform: translate(-50%, 50px) scale(0.5); }
+            15% { opacity: 1; transform: translate(-50%, -30px) scale(1.3); }
+            30% { opacity: 1; transform: translate(-50%, -20px) scale(1.1); }
+            80% { opacity: 1; transform: translate(-50%, -40px) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -100px) scale(0.8); }
+        }
+        .floating-emoji {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 100px;
+            z-index: 999999;
+            pointer-events: none;
+            animation: emojiPop 1.8s ease-out forwards;
+        }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
     <aside class="sidebar">
@@ -231,11 +265,11 @@ $userCats = $stmtCats->fetchAll();
             <section class="stat-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 40px;">
                 <div class="premium-card" style="background: linear-gradient(135deg, var(--accent) 0%, #4c1d95 100%); color: #000;">
                     <p style="font-size:12px; font-weight:700; text-transform:uppercase; opacity:0.8;">Total Balance</p>
-                    <div style="display:flex; align-items:center; gap:10px;"><h1 id="dynamic-balance" style="font-family:'Outfit'; font-size:42px; margin:10px 0;">$<?= number_format($calculatedBalance, 2) ?></h1><i class="fas fa-plus-circle" onclick="openBalanceEdit()" style="cursor:pointer; font-size:16px; opacity:0.6;"></i></div>
+                    <div style="display:flex; align-items:center; gap:10px;"><h1 id="dynamic-balance" style="font-family:'Outfit'; font-size:42px; margin:10px 0;"><?= formatMoney($calculatedBalance, $userCurrency) ?></h1><i class="fas fa-plus-circle" onclick="openBalanceEdit()" style="cursor:pointer; font-size:16px; opacity:0.6;"></i></div>
                     <div style="font-size:11px; background:rgba(255,255,255,0.2); padding:4px 8px; border-radius:6px; display:inline-block;">Live Sync</div>
                 </div>
-                <div class="premium-card"><p style="color:var(--text-sub); font-size:12px; font-weight:700; text-transform:uppercase;">Monthly In</p><h2 id="dynamic-inflow" style="color:var(--success); font-family:'Outfit';">+$<?= number_format($inflowTotal, 2) ?></h2></div>
-                <div class="premium-card" style="position:relative;"><p style="color:var(--text-sub); font-size:12px; font-weight:700; text-transform:uppercase;">Monthly Out</p><h2 id="dynamic-outflow" style="color:var(--danger); font-family:'Outfit';">-$<?= number_format($outflowTotal, 2) ?></h2><span style="position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.05); padding:4px 8px; border-radius:6px; font-size:11px; color:var(--text-sub); font-weight:700;" id="dynamic-outflow-perc"><?= $inflowTotal > 0 ? round(($outflowTotal / $inflowTotal) * 100) : 0 ?>% of Income</span></div>
+                <div class="premium-card"><p style="color:var(--text-sub); font-size:12px; font-weight:700; text-transform:uppercase;">Monthly In</p><h2 id="dynamic-inflow" style="color:var(--success); font-family:'Outfit';">+<?= formatMoney($inflowTotal, $userCurrency) ?></h2></div>
+                <div class="premium-card" style="position:relative;"><p style="color:var(--text-sub); font-size:12px; font-weight:700; text-transform:uppercase;">Monthly Out</p><h2 id="dynamic-outflow" style="color:var(--danger); font-family:'Outfit';">-<?= formatMoney($outflowTotal, $userCurrency) ?></h2><span style="position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.05); padding:4px 8px; border-radius:6px; font-size:11px; color:var(--text-sub); font-weight:700;" id="dynamic-outflow-perc"><?= $inflowTotal > 0 ? round(($outflowTotal / $inflowTotal) * 100) : 0 ?>% of Income</span></div>
                 <div class="momentum-card">
                     <div class="widget-head">
                         <p style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; opacity:0.85;">Momentum Beacon</p>
@@ -303,7 +337,7 @@ $userCats = $stmtCats->fetchAll();
                                 <div style="width:40px; height:40px; border-radius:12px; background:rgba(255,255,255,0.03); display:flex; align-items:center; justify-content:center; color:<?= $tx['type'] == 'inflow' ? 'var(--success)' : 'var(--danger)' ?>;"><i class="fas <?= getCategoryIcon($tx['cat_name']) ?>"></i></div>
                                 <div><p style="font-weight:600;"><?= htmlspecialchars($tx['description'] ?: $tx['cat_name']) ?></p><p style="font-size:12px; color:var(--text-sub);"><?= date('M d', strtotime($tx['transaction_date'])) ?></p></div>
                             </div>
-                            <p style="font-weight:700; color:<?= $tx['type'] == 'inflow' ? 'var(--success)' : 'var(--danger)' ?>;"><?= $tx['type'] == 'inflow' ? '+' : '-' ?>$<?= number_format($tx['amount'], 2) ?></p>
+                            <p style="font-weight:700; color:<?= $tx['type'] == 'inflow' ? 'var(--success)' : 'var(--danger)' ?>;"><?= $tx['type'] == 'inflow' ? '+' : '-' ?><?= formatMoney($tx['amount'], $userCurrency) ?></p>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -332,7 +366,7 @@ $userCats = $stmtCats->fetchAll();
                                         <div style="width:8px; height:8px; border-radius:50%; background:<?= $stat['color'] ?>;"></div>
                                         <i class="fas <?= getCategoryIcon($stat['name']) ?>" style="opacity:0.5; font-size:11px;"></i> <?= htmlspecialchars($stat['name']) ?>
                                     </span>
-                                    <span style="color:var(--text-main); font-weight:700;">$<?= number_format($stat['total'], 2) ?></span>
+                                    <span style="color:var(--text-main); font-weight:700;"><?= formatMoney($stat['total'], $userCurrency) ?></span>
                                 </div>
                                 <div style="width:100%; height:6px; background:rgba(255,255,255,0.05); border-radius:10px; overflow:hidden;">
                                     <div style="width:<?= ($stat['total'] / max(1, $outflowTotal)) * 100 ?>%; height:100%; background:<?= $stat['color'] ?>;"></div>
@@ -348,7 +382,7 @@ $userCats = $stmtCats->fetchAll();
                     
                     <div style="background: rgba(0,0,0,0.2); border-radius: 12px; padding: 15px; border: 1px dashed var(--border);">
                         <p style="font-size: 12px; color: var(--text-sub);">AI Insight</p>
-                        <p style="font-size: 13px; margin-top: 5px;">You've spent <b>$<?= number_format($outflowTotal, 2) ?></b> recently. High volume detected in <b><?= !empty($catStats) ? htmlspecialchars($catStats[0]['name']) : 'uncategorized' ?></b>.</p>
+                        <p style="font-size: 13px; margin-top: 5px;">You've spent <b><?= formatMoney($outflowTotal, $userCurrency) ?></b> recently. High volume detected in <b><?= !empty($catStats) ? htmlspecialchars($catStats[0]['name']) : 'uncategorized' ?></b>.</p>
                     </div>
                 </div>
             </div>
@@ -373,7 +407,7 @@ $userCats = $stmtCats->fetchAll();
                             <div style="width:40px; height:40px; border-radius:12px; background:rgba(255,255,255,0.03); display:flex; align-items:center; justify-content:center; color:<?= $tx['type'] == 'inflow' ? 'var(--success)' : 'var(--danger)' ?>;"><i class="fas <?= getCategoryIcon($tx['cat_name']) ?>"></i></div>
                             <div><p style="font-weight:600;"><?= htmlspecialchars($tx['description'] ?: $tx['cat_name']) ?></p><p style="font-size:12px; color:var(--text-sub);"><?= date('M d, Y', strtotime($tx['transaction_date'])) ?></p></div>
                         </div>
-                        <div style="text-align:right;"><p style="font-weight:700; color:<?= $tx['type'] == 'inflow' ? 'var(--success)' : 'var(--danger)' ?>;"><?= $tx['type'] == 'inflow' ? '+' : '-' ?>$<span class="tx-amt-display"><?= number_format($tx['amount'], 2) ?></span></p><div style="display:flex; gap:8px; justify-content:flex-end;"><span onclick="editTx(<?= $tx['id'] ?>, <?= $tx['amount'] ?>)" style="font-size:11px; color:var(--accent); cursor:pointer;">Edit</span><span onclick="deleteTx(<?= $tx['id'] ?>)" style="font-size:11px; color:var(--danger); cursor:pointer;">Delete</span></div></div>
+                        <div style="text-align:right;"><p style="font-weight:700; color:<?= $tx['type'] == 'inflow' ? 'var(--success)' : 'var(--danger)' ?>;"><?= $tx['type'] == 'inflow' ? '+' : '-' ?><span class="tx-amt-display"><?= formatMoney($tx['amount'], $userCurrency) ?></span></p><div style="display:flex; gap:8px; justify-content:flex-end;"><span onclick="editTx(<?= $tx['id'] ?>, <?= $tx['amount'] ?>)" style="font-size:11px; color:var(--accent); cursor:pointer;">Edit</span><span onclick="deleteTx(<?= $tx['id'] ?>)" style="font-size:11px; color:var(--danger); cursor:pointer;">Delete</span></div></div>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -404,7 +438,7 @@ $userCats = $stmtCats->fetchAll();
                 <h3 style="font-family:'Outfit'; margin-bottom:20px;">Save for a Wish</h3>
                 <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
                     <div style="flex:1; min-width:200px;"><input type="text" id="wishTitle" class="modern-input" placeholder="What are you saving for? (e.g. Car, Travel)"></div>
-                    <div style="flex:1; min-width:120px;"><input type="number" id="wishTarget" class="modern-input" placeholder="Target Price ($)" step="0.01"></div>
+                    <div style="flex:1; min-width:120px;"><input type="number" id="wishTarget" class="modern-input" placeholder="Target Price" step="0.01"></div>
                     <button class="btn-glass" onclick="addWish()" style="min-width:120px; justify-content:center;">Create Wish</button>
                 </div>
             </div>
@@ -426,6 +460,17 @@ $userCats = $stmtCats->fetchAll();
                         </div>
                         <div class="premium-input-group"><label>Display Name</label><input type="text" name="username" value="<?= htmlspecialchars($user['username']) ?>" class="modern-input"></div>
                         <div class="premium-input-group"><label>Email Address</label><input type="email" name="email" value="<?= htmlspecialchars($user['email']) ?>" class="modern-input"></div>
+                        <div class="premium-input-group"><label>Currency Preference</label>
+                            <select name="currency" class="modern-input">
+                                <option value="USD" <?= $userCurrency === 'USD' ? 'selected' : '' ?>>United States Dollar (USD)</option>
+                                <option value="EUR" <?= $userCurrency === 'EUR' ? 'selected' : '' ?>>Euro (EUR)</option>
+                                <option value="TND" <?= $userCurrency === 'TND' ? 'selected' : '' ?>>Tunisian Dinar (TND)</option>
+                                <option value="GBP" <?= $userCurrency === 'GBP' ? 'selected' : '' ?>>British Pound (GBP)</option>
+                                <option value="CAD" <?= $userCurrency === 'CAD' ? 'selected' : '' ?>>Canadian Dollar (CAD)</option>
+                                <option value="AUD" <?= $userCurrency === 'AUD' ? 'selected' : '' ?>>Australian Dollar (AUD)</option>
+                                <option value="JPY" <?= $userCurrency === 'JPY' ? 'selected' : '' ?>>Japanese Yen (JPY)</option>
+                            </select>
+                        </div>
                         <button type="submit" class="btn-glass" style="width:100%; justify-content:center; background:var(--accent); color:#000; border:none; font-weight:700; margin-bottom:12px;">Sync Profile</button>
                         <a href="dashboard.php?logout=1" class="btn-glass" style="width:100%; justify-content:center; color:var(--danger); border-color:var(--danger); text-decoration:none; font-weight:700; display:flex; align-items:center; gap:8px;"><i class="fas fa-sign-out-alt"></i> Exit Workspace</a>
                     </form>
@@ -477,9 +522,9 @@ $userCats = $stmtCats->fetchAll();
                 const res = await fetch('api/data.php');
                 const data = await res.json();
                 if(data.success) {
-                    document.getElementById('dynamic-balance').innerText = '$' + data.balance;
-                    document.getElementById('dynamic-inflow').innerText = '+$' + data.inflow;
-                    document.getElementById('dynamic-outflow').innerText = '-$' + data.outflow;
+                    document.getElementById('dynamic-balance').innerText = getFormattedMoney(data.balance);
+                    document.getElementById('dynamic-inflow').innerText = '+' + getFormattedMoney(data.inflow);
+                    document.getElementById('dynamic-outflow').innerText = '-' + getFormattedMoney(data.outflow);
                     if(document.getElementById('dynamic-outflow-perc')) {
                         const iAmount = parseFloat(data.inflow) || 0;
                         const oAmount = parseFloat(data.outflow) || 0;
@@ -508,7 +553,19 @@ $userCats = $stmtCats->fetchAll();
                 body: JSON.stringify({ amount: parseFloat(amount), category_id: catId, description: desc, type: qeType }) 
             });
             const result = await res.json();
-            if(result.success) { syncStats().then(() => { document.getElementById('quickAmount').value = ''; document.getElementById('quickDesc').value = ''; setTimeout(() => location.reload(), 1500); }); }
+            if(result.success) { 
+                const emoji = qeType === 'inflow' ? '🤑' : '😢';
+                const el = document.createElement('div');
+                el.className = 'floating-emoji';
+                el.innerText = emoji;
+                document.body.appendChild(el);
+                
+                syncStats().then(() => { 
+                    document.getElementById('quickAmount').value = ''; 
+                    document.getElementById('quickDesc').value = ''; 
+                    setTimeout(() => location.reload(), 1800); 
+                }); 
+            }
             else alert('Error: ' + (result.message || 'Unknown error'));
         }
 
@@ -535,21 +592,31 @@ $userCats = $stmtCats->fetchAll();
             }
             container.innerHTML = wishes.map(w => {
                 const perc = Math.min(100, (w.current_amount / w.target_amount) * 100);
-                return `<div class="wish-card">
+                const isCompleted = parseFloat(w.current_amount) >= parseFloat(w.target_amount);
+                const maxAllowed = parseFloat(w.target_amount) - parseFloat(w.current_amount);
+                const escapedTitle = w.title.replace(/'/g, "\\'");
+                
+                return `<div class="wish-card" style="${isCompleted ? 'border-color:var(--success);' : ''}">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <h4 style="font-size:18px; font-family:'Outfit';">${w.title} <span style="font-size:12px; background:rgba(255,255,255,0.08); padding:2px 8px; border-radius:10px; margin-left:8px; vertical-align:middle; color:var(--text-sub);">${Math.round(perc)}%</span></h4>
                         <i class="fas fa-trash-alt" style="color:var(--danger); cursor:pointer; opacity:0.6;" onclick="deleteWish(${w.id})"></i>
                     </div>
                     <div class="wish-progress-bg">
-                        <div class="wish-progress-fill" style="width: ${perc}%;"></div>
+                        <div class="wish-progress-fill" style="width: ${perc}%; ${isCompleted ? 'background:var(--success);' : ''}"></div>
                     </div>
                     <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:600; margin-bottom:20px;">
-                        <span style="color:var(--success);">$${parseFloat(w.current_amount).toFixed(2)}</span>
-                        <span style="color:var(--text-sub);">Goal: $${parseFloat(w.target_amount).toFixed(2)}</span>
+                        <span style="color:${isCompleted ? 'var(--success)' : 'var(--success)'};">${getFormattedMoney(parseFloat(w.current_amount))}</span>
+                        <span style="color:var(--text-sub);">Goal: ${getFormattedMoney(parseFloat(w.target_amount))}</span>
                     </div>
-                    <button class="btn-glass" style="width:100%; justify-content:center;" onclick="addWishFunds(${w.id}, '${w.title}')">
-                        <i class="fas fa-plus"></i> Add Money
-                    </button>
+                    ${isCompleted ? 
+                        `<button class="btn-glass" style="width:100%; justify-content:center; background:rgba(16,185,129,0.1); color:var(--success); border:1px solid rgba(16,185,129,0.3); pointer-events:none;">
+                            <i class="fas fa-check-circle"></i> Completed 🎉
+                        </button>` 
+                        : 
+                        `<button class="btn-glass" style="width:100%; justify-content:center;" onclick="addWishFunds(${w.id}, '${escapedTitle}', ${maxAllowed})">
+                            <i class="fas fa-plus"></i> Add Money
+                        </button>`
+                    }
                 </div>`;
             }).join('');
         }
@@ -562,12 +629,55 @@ $userCats = $stmtCats->fetchAll();
             if((await res.json()).success) { document.getElementById('wishTitle').value = ''; document.getElementById('wishTarget').value = ''; fetchWishes(); }
         }
 
-        async function addWishFunds(id, title) {
-            const amt = prompt('How much are you saving towards: ' + title + '?');
+        async function addWishFunds(id, title, maxAllowed) {
+            document.getElementById('wishFundModal').style.display = 'flex';
+            document.getElementById('wishFundTitle').innerText = 'Fund: ' + title;
+            document.getElementById('wishFundId').value = id;
+            document.getElementById('wishFundMax').value = maxAllowed;
+            document.getElementById('wishFundAmount').value = '';
+            document.getElementById('wishFundAmount').max = maxAllowed;
+            document.getElementById('wishFundAmount').focus();
+        }
+
+        async function submitWishFund() {
+            const id = document.getElementById('wishFundId').value;
+            const amtStr = document.getElementById('wishFundAmount').value;
+            const max = parseFloat(document.getElementById('wishFundMax').value);
+            const amt = parseFloat(amtStr);
+            
             if(amt && !isNaN(amt) && amt > 0) {
+                if (amt > max) {
+                    alert('You cannot exceed the target goal! Maximum allowed to complete this wish is ' + getFormattedMoney(max));
+                    return;
+                }
                 const res = await fetch('api/wishes.php', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id, amount: amt})});
-                if((await res.json()).success) fetchWishes();
+                const data = await res.json();
+                if(data.success) {
+                    closeWishFundModal();
+                    if(typeof syncStats === 'function') syncStats();
+                    fetchWishes();
+                    
+                    if (amt === max) {
+                        // User completed the wish! Fire celebration
+                        if (typeof confetti === 'function') {
+                            confetti({
+                                particleCount: 150,
+                                spread: 70,
+                                origin: { y: 0.6 },
+                                colors: ['#BB86FC', '#03DAC6', '#FF0266']
+                            });
+                        }
+                    }
+                } else {
+                    alert('Failed to fund wish. Ensure enough balance if backend checks are configured.');
+                }
+            } else {
+                alert('Please enter a valid amount greater than 0.');
             }
+        }
+        
+        function closeWishFundModal() {
+            document.getElementById('wishFundModal').style.display = 'none';
         }
 
         async function deleteWish(id) {
@@ -603,27 +713,49 @@ $userCats = $stmtCats->fetchAll();
                 grid.appendChild(h);
             });
             
-            for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement('div'));
+            const prevMonthDays = new Date(year, month, 0).getDate();
+            for(let i=0; i<firstDay; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'calendar-day';
+                cell.style.opacity = '0.3';
+                cell.innerHTML = `<div class="calendar-day-header">${prevMonthDays - firstDay + i + 1}</div>`;
+                grid.appendChild(cell);
+            }
             
             for(let d=1; d<=daysInMonth; d++) {
                 const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                const dayOps = allTransactions.filter(t => t.transaction_date === dateStr);
+                
+                const dayOps = allTransactions.filter(t => typeof t.transaction_date === 'string' && t.transaction_date.startsWith(dateStr));
                 
                 const cell = document.createElement('div');
-                cell.className = 'calendar-day ' + (dayOps.length ? 'clickable' : '');
+                cell.className = 'calendar-day clickable';
                 
                 let html = `<div class="calendar-day-header">${d}</div>`;
                 
                 if(dayOps.length) {
                     let total = 0;
-                    dayOps.forEach(op => total += (op.type === 'inflow' ? parseFloat(op.amount) : -parseFloat(op.amount)));
+                    dayOps.forEach(op => {
+                        const amt = parseFloat(op.amount) || 0;
+                        total += (op.type === 'inflow' ? amt : -amt);
+                    });
                     const cls = total >= 0 ? 'flow-positive' : 'flow-negative';
                     const sign = total >= 0 ? '+' : '';
-                    html += `<div class="calendar-event ${cls}">${sign}$${Math.abs(total).toFixed(2)}</div>`;
-                    cell.onclick = () => showDayDetails(dateStr, dayOps, cell);
+                    html += `<div class="calendar-event ${cls}">${sign}${getFormattedMoney(Math.abs(total))}</div>`;
                 }
                 
+                cell.onclick = () => showDayDetails(dateStr, dayOps, cell);
                 cell.innerHTML = html;
+                grid.appendChild(cell);
+            }
+            
+            // Trailing empty days to fill the row
+            const totalCells = firstDay + daysInMonth;
+            const trailingDays = (7 - (totalCells % 7)) % 7;
+            for(let i=1; i<=trailingDays; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'calendar-day';
+                cell.style.opacity = '0.3';
+                cell.innerHTML = `<div class="calendar-day-header">${i}</div>`;
                 grid.appendChild(cell);
             }
         }
@@ -650,20 +782,35 @@ $userCats = $stmtCats->fetchAll();
                 if(name.includes('work') || name.includes('salary')) return 'fa-briefcase';
                 return 'fa-tag';
             };
-            list.innerHTML = ops.map(op => {
-                const isIncome = op.type === 'inflow';
-                const color = isIncome ? 'var(--success)' : 'var(--danger)';
-                const sign = isIncome ? '+$' : '-$';
-                return `<div class="cat-item">
-                    <div style="display:flex; align-items:center; gap:12px;">
-                        <div style="width:32px; height:32px; border-radius:8px; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; color:${color};"><i class="fas ${getCatIconJS(op.cat_name)}"></i></div>
-                        <div>
-                            <div style="font-weight:600; color:${color}">${sign}${parseFloat(op.amount).toFixed(2)}</div>
-                            <div style="font-size:11px; color:var(--text-sub);">${op.cat_name || 'Uncategorized'} - ${op.description || 'No notes'}</div>
+            
+            let html = '';
+            if(ops.length > 0) {
+                html += ops.map(op => {
+                    const isIncome = op.type === 'inflow';
+                    const color = isIncome ? 'var(--success)' : 'var(--danger)';
+                    const sign = isIncome ? '+' : '-';
+                    return `<div class="cat-item" style="border:1px solid rgba(255,255,255,0.05); padding:10px; border-radius:12px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between;">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <div style="width:32px; height:32px; border-radius:8px; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; color:${color};"><i class="fas ${getCatIconJS(op.cat_name)}"></i></div>
+                                <div>
+                                    <div style="font-weight:600; color:${color}">${sign}${getFormattedMoney(parseFloat(op.amount))}</div>
+                                    <div style="font-size:11px; color:var(--text-sub);">${op.cat_name || 'Uncategorized'} - ${op.description || 'No notes'}</div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>`;
-            }).join('');
+                    </div>`;
+                }).join('');
+            } else {
+                html += `<div style="text-align:center; padding:12px; color:var(--text-sub); background:rgba(255,255,255,0.02); border-radius:12px;">No transactions recorded for this day.</div>`;
+            }
+            
+            // Add shortcut button to create a transaction on this specific day!
+            html += `<div style="margin-top:16px; display:flex; justify-content:center;">
+                <button class="btn-glass" onclick="document.getElementById('section-home').scrollIntoView(); switchView('home'); alert('Add your transaction now (System typically logs for today automatically)');" style="padding:6px 14px; font-size:12px;"><i class="fas fa-plus"></i> Add Entry</button>
+            </div>`;
+            
+            list.innerHTML = html;
         }
 
         let chart = null;
@@ -734,8 +881,18 @@ $userCats = $stmtCats->fetchAll();
 
         document.getElementById('profileForm').onsubmit = async (e) => {
             e.preventDefault();
-            const res = await fetch('api/save_settings.php', { method: 'POST', body: new FormData(e.target) });
-            if((await res.json()).success) { alert('Synced.'); location.reload(); }
+            try {
+                const response = await fetch('api/save_settings.php', { method: 'POST', body: new FormData(e.target) });
+                const json = await response.json();
+                if(json.success) { 
+                    alert('Synced.'); 
+                    location.reload(); 
+                } else {
+                    alert('Error: ' + (json.message || 'Failed to sync.'));
+                }
+            } catch (err) {
+                alert('Network error.');
+            }
         };
 
         const themeSelect = document.getElementById('themeSelect');
@@ -756,5 +913,17 @@ $userCats = $stmtCats->fetchAll();
             }
         };
     </script>
+    <!-- Wish Funding Modal -->
+    <div id="wishFundModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; padding:20px;">
+        <div class="premium-card" style="width:100%; max-width:400px; padding:30px; position:relative;">
+            <i class="fas fa-times" style="position:absolute; top:20px; right:20px; cursor:pointer; color:var(--text-sub);" onclick="closeWishFundModal()"></i>
+            <h3 id="wishFundTitle" style="font-family:'Outfit'; margin-bottom:10px;">Fund Wish</h3>
+            <p style="font-size:13px; color:var(--text-sub); margin-bottom:20px;">This amount will be deducted from your main balance explicitly as an outflow transaction to ensure records stay accurate.</p>
+            <input type="hidden" id="wishFundId">
+            <input type="hidden" id="wishFundMax">
+            <input type="number" id="wishFundAmount" class="input-glass" style="margin-bottom:20px; font-size:24px; text-align:center;" placeholder="0.00">
+            <button class="btn-glass" style="width:100%; justify-content:center; background:var(--accent); color:#000; border:none; font-weight:700;" onclick="submitWishFund()">Confirm Transfer</button>
+        </div>
+    </div>
 </body>
 </html>

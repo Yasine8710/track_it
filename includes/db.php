@@ -11,55 +11,64 @@ try {
 
     // Patch missing user and category schema columns for older installations
     try {
-        $pdo->exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(255) DEFAULT NULL");
-        $pdo->exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_picture VARCHAR(255) DEFAULT NULL");
-        $pdo->exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS balance DECIMAL(10,2) DEFAULT 0.00");
-        $pdo->exec("ALTER TABLE categories MODIFY COLUMN user_id INT NULL");
-        $pdo->exec("ALTER TABLE categories ADD COLUMN IF NOT EXISTS type ENUM('income', 'expense') NOT NULL DEFAULT 'expense'");
-        $pdo->exec("UPDATE transactions SET type = 'inflow' WHERE type = 'income'");
-        $pdo->exec("UPDATE transactions SET type = 'outflow' WHERE type = 'expense'");
-        $pdo->exec("ALTER TABLE transactions MODIFY COLUMN type ENUM('inflow', 'outflow') NOT NULL DEFAULT 'inflow'");
+        try { $pdo->exec("ALTER TABLE users ADD COLUMN email VARCHAR(255) DEFAULT NULL"); } catch (PDOException $e) {}
+        try { $pdo->exec("ALTER TABLE users ADD COLUMN profile_picture VARCHAR(255) DEFAULT NULL"); } catch (PDOException $e) {}
+        try { $pdo->exec("ALTER TABLE users ADD COLUMN balance DECIMAL(10,2) DEFAULT 0.00"); } catch (PDOException $e) {}
+        try { $pdo->exec("ALTER TABLE users ADD COLUMN currency VARCHAR(10) DEFAULT 'USD'"); } catch (PDOException $e) {}
+        try { $pdo->exec("ALTER TABLE categories MODIFY COLUMN user_id INT NULL"); } catch (PDOException $e) {}
+        try { $pdo->exec("ALTER TABLE categories ADD COLUMN type ENUM('income', 'expense') NOT NULL DEFAULT 'expense'"); } catch (PDOException $e) {}
+        try { 
+            $pdo->exec("UPDATE transactions SET type = 'inflow' WHERE type = 'income'");
+            $pdo->exec("UPDATE transactions SET type = 'outflow' WHERE type = 'expense'");
+            $pdo->exec("ALTER TABLE transactions MODIFY COLUMN type ENUM('inflow', 'outflow') NOT NULL DEFAULT 'inflow'");
+        } catch (PDOException $e) {}
         
         // Create pets tables if they don't exist
-        $pdo->exec("CREATE TABLE IF NOT EXISTS pets (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(50) NOT NULL,
-            emoji VARCHAR(10) NOT NULL,
-            description VARCHAR(255) DEFAULT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )");
-        $pdo->exec("CREATE TABLE IF NOT EXISTS user_pets (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
-            pet_id INT NOT NULL,
-            streak_count INT DEFAULT 0,
-            last_updated DATE DEFAULT (CURRENT_DATE),
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-            FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE,
-            UNIQUE KEY unique_user_pet (user_id, pet_id)
-        )");
+        try {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS pets (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(50) NOT NULL,
+                emoji VARCHAR(10) NOT NULL,
+                description VARCHAR(255) DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )");
+            $pdo->exec("CREATE TABLE IF NOT EXISTS user_pets (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                pet_id INT NOT NULL,
+                streak_count INT DEFAULT 0,
+                last_updated DATE DEFAULT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_user_pet (user_id, pet_id)
+            )");
+        } catch (PDOException $e) {}
         
         // Create wishes table if it doesn't exist
-        $pdo->exec("CREATE TABLE IF NOT EXISTS wishes (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
-            title VARCHAR(255) NOT NULL,
-            target_amount DECIMAL(10,2) NOT NULL,
-            current_amount DECIMAL(10,2) DEFAULT 0.00,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        )");
+        try {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS wishes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                target_amount DECIMAL(10,2) NOT NULL,
+                current_amount DECIMAL(10,2) DEFAULT 0.00,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )");
+        } catch (PDOException $e) {}
         
         // Insert default pets if not exists
-        $pdo->exec("INSERT IGNORE INTO pets (id, name, emoji, description) VALUES
-            (1, 'Kitten', '🐱', 'A cute little kitten that loves to play'),
-            (2, 'Puppy', '🐶', 'An adorable puppy full of energy'),
-            (3, 'Panda', '🐼', 'A gentle panda that eats bamboo'),
-            (4, 'Rabbit', '🐰', 'A fluffy bunny that hops around'),
-            (5, 'Fox', '🦊', 'A clever fox with a bushy tail'),
-            (6, 'Owl', '🦉', 'A wise owl that hoots at night'),
-            (7, 'Penguin', '🐧', 'A waddling penguin from the south'),
-            (8, 'Koala', '🐨', 'A sleepy koala that loves eucalyptus')");
+        try {
+            $pdo->exec("INSERT IGNORE INTO pets (id, name, emoji, description) VALUES
+                (1, 'Kitten', '🐱', 'A cute little kitten that loves to play'),
+                (2, 'Puppy', '🐶', 'An adorable puppy full of energy'),
+                (3, 'Panda', '🐼', 'A gentle panda that eats bamboo'),
+                (4, 'Rabbit', '🐰', 'A fluffy bunny that hops around'),
+                (5, 'Fox', '🦊', 'A clever fox with a bushy tail'),
+                (6, 'Owl', '🦉', 'A wise owl that hoots at night'),
+                (7, 'Penguin', '🐧', 'A waddling penguin from the south'),
+                (8, 'Koala', '🐨', 'A sleepy koala that loves eucalyptus')");
+        } catch (PDOException $e) {}
     } catch (Exception $e) {
         // Ignore migration errors, since this is a best-effort schema patch.
     }

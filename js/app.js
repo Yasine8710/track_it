@@ -153,7 +153,7 @@ async function loadDashboardData() {
 }
 
 function updateSummaryCards(data) {
-    const format = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+    const format = getFormattedMoney;
 
     // Update Text
     const elInc = document.getElementById('total-income');
@@ -415,9 +415,24 @@ function renderChart(categories) {
     });
 }
 
-// --- Utility ---
+function getFormattedMoney(amount) {
+    const currency = typeof USER_CURRENCY !== 'undefined' ? USER_CURRENCY : 'USD';
+    const symbols = {
+        'USD': '$',
+        'EUR': '€',
+        'TND': 'DT',
+        'GBP': '£',
+        'CAD': 'CA$',
+        'AUD': 'A$',
+        'JPY': '¥'
+    };
+    const symbol = symbols[currency] || (currency + ' ');
+    const formatted = parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return `${symbol}${formatted}`;
+}
+
 function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    return getFormattedMoney(amount);
 }
 
 // --- Modals & Forms ---

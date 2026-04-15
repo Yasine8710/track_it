@@ -11,6 +11,7 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $username = $_POST['username'] ?? '';
 $email = $_POST['email'] ?? '';
+$currency = $_POST['currency'] ?? 'USD';
 $pet_id = $_POST['pet_id'] ?? $_GET['pet_id'] ?? null;
 
 // Handle Avatar Upload
@@ -37,11 +38,11 @@ if (isset($_FILES['avatar_file']) && $_FILES['avatar_file']['error'] === UPLOAD_
 
 try {
     if ($profile_picture) {
-        $stmt = $pdo->prepare("UPDATE users SET username = ?, email = ?, profile_picture = ? WHERE id = ?");
-        $stmt->execute([$username, $email, $profile_picture, $user_id]);
+        $stmt = $pdo->prepare("UPDATE users SET username = ?, email = ?, currency = ?, profile_picture = ? WHERE id = ?");
+        $stmt->execute([$username, $email, $currency, $profile_picture, $user_id]);
     } else {
-        $stmt = $pdo->prepare("UPDATE users SET username = ?, email = ? WHERE id = ?");
-        $stmt->execute([$username, $email, $user_id]);
+        $stmt = $pdo->prepare("UPDATE users SET username = ?, email = ?, currency = ? WHERE id = ?");
+        $stmt->execute([$username, $email, $currency, $user_id]);
     }
     
     // Handle pet selection
