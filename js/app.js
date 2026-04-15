@@ -557,47 +557,58 @@ function setupVoiceRecognition() {
     if (micBtn) {
         micBtn.addEventListener('click', () => {
             voiceRecognition.start();
-            micBtn.classList.add('ring-4', 'ring-brand-400/50');
-            statusText.innerHTML = '<span class="text-white font-bold animate-pulse">Listening...</span>';
+            micBtn.classList.add('recording-active');
+            if (statusText) {
+                statusText.style.display = 'block';
+                statusText.innerHTML = '<span class="text-white font-bold animate-pulse">Listening...</span>';
+            }
         });
 
         voiceRecognition.onresult = async (event) => {
-            micBtn.classList.remove('ring-4', 'ring-brand-400/50');
+            micBtn.classList.remove('recording-active');
             const transcript = event.results[0][0].transcript;
-            statusText.textContent = `Processing: "${transcript}"...`;
+            if (statusText) statusText.textContent = `Processing: "${transcript}"...`;
             
             try {
                 const res = await fetch('api/process_voice.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: transcript })
+                    body: JSON.stringify({ transcript: transcript })
                 });
                 const result = await res.json();
                 
                 if (result.success) {
-                    statusText.innerHTML = `<span class="text-emerald-200"><i class="fas fa-check mr-1"></i> ${result.message}</span>`;
+                    if (statusText) statusText.innerHTML = `<span class="text-emerald-400"><i class="fas fa-check mr-1"></i> ${result.message}</span>`;
                     setTimeout(() => {
-                        statusText.innerHTML = '<span class="w-1.5 h-1.5 bg-white rounded-full mr-2 animate-pulse"></span>Ready to listen...';
+                        if (statusText) {
+                            statusText.style.display = 'none';
+                            statusText.innerHTML = '';
+                        }
                     }, 3000);
-                    loadDashboardData();
+                    
+                    if (typeof loadDashboardData === 'function') loadDashboardData();
+                    if (typeof syncStats === 'function') syncStats();
+                    
+                    // If we are on dashboard.php, a reload might be simpler for certain UI elements
+                    if (window.location.pathname.includes('dashboard.php')) {
+                        setTimeout(() => location.reload(), 1500);
+                    }
                 } else {
-                    statusText.innerHTML = `<span class="text-red-200"><i class="fas fa-times mr-1"></i> ${result.message}</span>`;
+                    if (statusText) statusText.innerHTML = `<span class="text-red-400"><i class="fas fa-times mr-1"></i> ${result.message}</span>`;
                 }
             } catch (e) {
-                statusText.textContent = "Error processing voice command.";
+                if (statusText) statusText.textContent = "Error processing voice command.";
             }
         };
         
         voiceRecognition.onerror = (e) => {
-            micBtn.classList.remove('ring-4', 'ring-brand-400/50');
-            statusText.textContent = "Voice error. Try again.";
+            micBtn.classList.remove('recording-active');
+            console.error("Speech Recognition Error:", e.error);
+            if (statusText) statusText.textContent = `Voice error: ${e.error}. Try again.`;
         };
 
         voiceRecognition.onend = () => {
-             micBtn.classList.remove('ring-4', 'ring-brand-400/50');
-             if (statusText.textContent === "Listening...") {
-                 statusText.innerHTML = '<span class="w-1.5 h-1.5 bg-white rounded-full mr-2 animate-pulse"></span>Ready to listen...';
-             }
+             micBtn.classList.remove('recording-active');
         };
     }
 }

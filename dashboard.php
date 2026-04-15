@@ -467,7 +467,8 @@ $userCats = $stmtCats->fetchAll();
         <div class="premium-card" style="width:90%; max-width:380px;"><h3 style="margin-bottom:20px; font-family:'Outfit';">Manual Adjustment</h3><p style="font-size:12px; color:var(--text-sub); margin-bottom:15px;">Set your desired balance entry.</p><input type="number" id="newBal" step="0.01" class="modern-input" placeholder="0.00"><div style="display:flex; gap:12px; margin-top:30px;"><button onclick="closeBalanceModal()" class="btn-glass" style="flex:1;">Cancel</button><button onclick="saveManualBalance()" class="btn-glass" style="flex:1; background:var(--accent); color:#000;">Add Entry</button></div></div>
     </div>
 
-    <div class="voice-fab" id="voice-btn"><i class="fas fa-microphone"></i></div>
+    <div class="voice-fab" id="mic-btn"><i class="fas fa-microphone"></i></div>
+    <div id="voice-status" style="position:fixed; bottom:100px; right:24px; background:rgba(0,0,0,0.8); color:white; padding:8px 16px; border-radius:20px; font-size:12px; display:none; z-index:9999;"></div>
 
     <script>
         let qeType = 'outflow';
@@ -748,19 +749,12 @@ $userCats = $stmtCats->fetchAll();
         themeSelect.value = savedTheme;
         applyTheme(savedTheme);
 
-        const voiceBtn = document.getElementById('voice-btn');
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (SpeechRecognition) {
-            const recognition = new SpeechRecognition();
-            recognition.onstart = () => { voiceBtn.classList.add('active'); };
-            recognition.onend = () => { voiceBtn.classList.remove('active'); };
-            recognition.onresult = async (e) => {
-                const transcript = e.results[0][0].transcript;
-                const res = await fetch('api/process_voice.php', { method: 'POST', body: JSON.stringify({ transcript }) });
-                if((await res.json()).success) location.reload();
-            };
-            voiceBtn.onclick = () => recognition.start();
-        }
+        // Use the function from app.js to handle voice
+        window.onload = () => {
+            if (typeof setupVoiceRecognition === 'function') {
+                setupVoiceRecognition();
+            }
+        };
     </script>
 </body>
 </html>
