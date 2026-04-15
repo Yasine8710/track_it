@@ -11,6 +11,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $action = $_POST['action'] ?? '';
 $username = trim($_POST['username'] ?? '');
 $password = $_POST['password'] ?? '';
+$full_name = trim($_POST['full_name'] ?? '');
+$phone = trim($_POST['phone'] ?? '');
+$address = trim($_POST['address'] ?? '');
+$bio = trim($_POST['bio'] ?? '');
 
 if (!$username || !$password) {
     echo json_encode(['success' => false, 'message' => 'Username and password required']);
@@ -31,8 +35,8 @@ if ($action === 'register') {
     try {
         $pdo->beginTransaction();
 
-        $stmt = $pdo->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
-        $stmt->execute([$username, $hash]);
+        $stmt = $pdo->prepare("INSERT INTO users (username, password, full_name, phone, address, bio) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$username, $hash, $full_name, $phone, $address, $bio]);
         $userId = $pdo->lastInsertId();
 
         // Create Default Categories

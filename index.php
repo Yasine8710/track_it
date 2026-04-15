@@ -44,17 +44,37 @@ if (isset($_SESSION["user_id"])) {
                 </div>
                 <div style="margin-bottom: 30px;">
                     <label style="display:block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-sub); margin-bottom: 8px;">Password</label>
-                    <input type="password" name="password" class="modern-input" placeholder="••••••••" required>
+                    <input type="password" name="password" class="modern-input" placeholder="ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" required>
                 </div>
                 <button type="submit" class="btn-glass" style="width: 100%; background:var(--accent); color:#000; border:none; padding:16px;">Login Account</button>
             </form>
             <form id="register-form" class="auth-form">
                 <input type="hidden" name="action" value="register">
-                <div style="margin-bottom: 20px;">
-                    <label style="display:block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-sub); margin-bottom: 8px;">Full Name</label>
-                    <input type="text" name="username" class="modern-input" placeholder="How should we call you?" required>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label style="display:block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-sub); margin-bottom: 8px;">Username</label>
+                        <input type="text" name="username" class="modern-input" placeholder="Unique ID" required>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-sub); margin-bottom: 8px;">Full Name</label>
+                        <input type="text" name="full_name" class="modern-input" placeholder="Personal Name" required>
+                    </div>
                 </div>
-                <div style="margin-bottom: 30px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label style="display:block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-sub); margin-bottom: 8px;">Phone</label>
+                        <input type="text" name="phone" class="modern-input" placeholder="+1..." required>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-sub); margin-bottom: 8px;">Address</label>
+                        <input type="text" name="address" class="modern-input" placeholder="Home/Work" required>
+                    </div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display:block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-sub); margin-bottom: 8px;">Short Bio</label>
+                    <textarea name="bio" class="modern-input" style="height: 60px; resize: none;" placeholder="Tell us about yourself..."></textarea>
+                </div>
+                <div style="margin-bottom: 20px;">
                     <label style="display:block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-sub); margin-bottom: 8px;">Secret Password</label>
                     <input type="password" name="password" class="modern-input" placeholder="Min. 4 characters" required>
                 </div>

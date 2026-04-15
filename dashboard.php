@@ -522,9 +522,15 @@ $userCurrency = $user['currency'] ?? 'USD';
                 const res = await fetch('api/data.php');
                 const data = await res.json();
                 if(data.success) {
+<<<<<<< Updated upstream
                     document.getElementById('dynamic-balance').innerText = getFormattedMoney(data.balance);
                     document.getElementById('dynamic-inflow').innerText = '+' + getFormattedMoney(data.inflow);
                     document.getElementById('dynamic-outflow').innerText = '-' + getFormattedMoney(data.outflow);
+=======
+                    document.getElementById('dynamic-balance').innerText = formatCurrency(data.balance);
+                    document.getElementById('dynamic-inflow').innerText = '+' + formatCurrency(data.inflow);
+                    document.getElementById('dynamic-outflow').innerText = '-' + formatCurrency(data.outflow);
+>>>>>>> Stashed changes
                     if(document.getElementById('dynamic-outflow-perc')) {
                         const iAmount = parseFloat(data.inflow) || 0;
                         const oAmount = parseFloat(data.outflow) || 0;
@@ -605,8 +611,13 @@ $userCurrency = $user['currency'] ?? 'USD';
                         <div class="wish-progress-fill" style="width: ${perc}%; ${isCompleted ? 'background:var(--success);' : ''}"></div>
                     </div>
                     <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:600; margin-bottom:20px;">
+<<<<<<< Updated upstream
                         <span style="color:${isCompleted ? 'var(--success)' : 'var(--success)'};">${getFormattedMoney(parseFloat(w.current_amount))}</span>
                         <span style="color:var(--text-sub);">Goal: ${getFormattedMoney(parseFloat(w.target_amount))}</span>
+=======
+                        <span style="color:${isCompleted ? 'var(--success)' : 'var(--success)'};">${formatCurrency(parseFloat(w.current_amount))}</span>
+                        <span style="color:var(--text-sub);">Goal: ${formatCurrency(parseFloat(w.target_amount))}</span>
+>>>>>>> Stashed changes
                     </div>
                     ${isCompleted ? 
                         `<button class="btn-glass" style="width:100%; justify-content:center; background:rgba(16,185,129,0.1); color:var(--success); border:1px solid rgba(16,185,129,0.3); pointer-events:none;">
@@ -625,7 +636,7 @@ $userCurrency = $user['currency'] ?? 'USD';
             const title = document.getElementById('wishTitle').value;
             const target_amount = document.getElementById('wishTarget').value;
             if(!title || target_amount <= 0) return alert('Invalid inputs');
-            const res = await fetch('api/wishes.php', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title, target_amount})});
+            const res = await fetch('api/wishes.php', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title: title, target_amount: parseFloat(target_amount)})});
             if((await res.json()).success) { document.getElementById('wishTitle').value = ''; document.getElementById('wishTarget').value = ''; fetchWishes(); }
         }
 
@@ -647,7 +658,11 @@ $userCurrency = $user['currency'] ?? 'USD';
             
             if(amt && !isNaN(amt) && amt > 0) {
                 if (amt > max) {
+<<<<<<< Updated upstream
                     alert('You cannot exceed the target goal! Maximum allowed to complete this wish is ' + getFormattedMoney(max));
+=======
+                    alert('You cannot exceed the target goal! Maximum allowed to complete this wish is ' + formatCurrency(max));
+>>>>>>> Stashed changes
                     return;
                 }
                 const res = await fetch('api/wishes.php', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id, amount: amt})});
@@ -740,7 +755,11 @@ $userCurrency = $user['currency'] ?? 'USD';
                     });
                     const cls = total >= 0 ? 'flow-positive' : 'flow-negative';
                     const sign = total >= 0 ? '+' : '';
+<<<<<<< Updated upstream
                     html += `<div class="calendar-event ${cls}">${sign}${getFormattedMoney(Math.abs(total))}</div>`;
+=======
+                    html += `<div class="calendar-event ${cls}">${sign}${formatCurrency(Math.abs(total))}</div>`;
+>>>>>>> Stashed changes
                 }
                 
                 cell.onclick = () => showDayDetails(dateStr, dayOps, cell);
@@ -794,7 +813,11 @@ $userCurrency = $user['currency'] ?? 'USD';
                             <div style="display:flex; align-items:center; gap:12px;">
                                 <div style="width:32px; height:32px; border-radius:8px; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; color:${color};"><i class="fas ${getCatIconJS(op.cat_name)}"></i></div>
                                 <div>
+<<<<<<< Updated upstream
                                     <div style="font-weight:600; color:${color}">${sign}${getFormattedMoney(parseFloat(op.amount))}</div>
+=======
+                                    <div style="font-weight:600; color:${color}">${sign}${formatCurrency(parseFloat(op.amount))}</div>
+>>>>>>> Stashed changes
                                     <div style="font-size:11px; color:var(--text-sub);">${op.cat_name || 'Uncategorized'} - ${op.description || 'No notes'}</div>
                                 </div>
                             </div>
