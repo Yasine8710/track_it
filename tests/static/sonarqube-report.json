@@ -1,0 +1,70 @@
+{
+  "project": "DINERI Finance Tracker",
+  "projectKey": "dineri-finance-tracker",
+  "organization": "yasine8710",
+  "scanDate": "2026-04-21T21:28:49Z",
+  "scannerVersion": "SonarScanner CLI 6.2.1.4610",
+  "analysisId": "8c6d4d84-81fb-4ea4-81a7-5222186d8c46",
+  "dashboardUrl": "https://sonarcloud.io/dashboard?id=dineri-finance-tracker",
+  "scmRevision": "0c6a27e31c38cd6847ea3780cdb529b27de4f8f9",
+  "metrics": {
+    "lines_of_code": 821,
+    "files_analyzed": 13,
+    "bugs": 19,
+    "vulnerabilities": 1,
+    "security_hotspots": 7,
+    "code_smells": 85,
+    "duplicated_lines_density": "2.8%",
+    "coverage": "0.0%",
+    "reliability_rating": "B",
+    "security_rating": "E",
+    "maintainability_rating": "A"
+  },
+  "notable_issues": [
+    {
+      "severity": "BLOCKER",
+      "type": "VULNERABILITY",
+      "rule": "php:S2115",
+      "file": "includes/db.php",
+      "line": 17,
+      "message": "Add password protection to this database.",
+      "effort": "45min"
+    },
+    {
+      "severity": "CRITICAL",
+      "type": "CODE_SMELL",
+      "rule": "php:S121",
+      "file": "api/transaction.php",
+      "line": 55,
+      "message": "Add curly braces around the nested statement(s).",
+      "effort": "2min"
+    },
+    {
+      "severity": "CRITICAL",
+      "type": "CODE_SMELL",
+      "rule": "php:S3776",
+      "file": "dashboard.php",
+      "line": 27,
+      "message": "Refactor this function to reduce its Cognitive Complexity from 20 to the 15 allowed.",
+      "effort": "10min"
+    },
+    {
+      "severity": "MAJOR",
+      "type": "CODE_SMELL",
+      "rule": "php:S1142",
+      "file": "dashboard.php",
+      "line": 27,
+      "message": "This function has 12 returns, which is more than the 3 allowed.",
+      "effort": "20min"
+    },
+    {
+      "severity": "MAJOR",
+      "type": "CODE_SMELL",
+      "rule": "php:S1066",
+      "file": "api/save_settings.php",
+      "line": 11,
+      "message": "Merge this if statement with the enclosing one.",
+      "effort": "5min"
+    }
+  ]
+}
