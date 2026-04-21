@@ -1,0 +1,5 @@
+﻿{
+    "url": "http://localhost/track_it/index.php",
+    "expect_status": 200,
+    "max_time_ms": 500
+}

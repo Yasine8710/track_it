@@ -1,11 +1,19 @@
 <?php
-session_start();
-require_once '../includes/db.php';
-header('Content-Type: application/json');
+if (session_status() === PHP_SESSION_NONE && !defined('TEST_MODE')) {
+    session_start();
+}
+require_once __DIR__ . '/../includes/db.php';
+if (!defined('TEST_MODE')) {
+    header('Content-Type: application/json');
+}
 
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
+    if (!defined('TEST_MODE')) {
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        exit;
+    } else {
+        return ['success' => false, 'message' => 'Unauthorized'];
+    }
 }
 
 $user_id = $_SESSION['user_id'];
@@ -14,9 +22,15 @@ $method = $_SERVER['REQUEST_METHOD'];
 if ($method === 'GET') {
     $stmt = $pdo->prepare("SELECT * FROM categories WHERE user_id = ? OR user_id IS NULL ORDER BY name ASC");
     $stmt->execute([$user_id]);
-    echo json_encode(['success' => true, 'categories' => $stmt->fetchAll()]);
+    $result = ['success' => true, 'categories' => $stmt->fetchAll()];
+    if (defined('TEST_MODE')) { 
+        echo json_encode($result);
+        return $result;
+    }
+    echo json_encode($result);
 } elseif ($method === 'POST') {
-    $data = json_decode(file_get_contents('php://input'), true);
+    $raw_input = defined('TEST_MODE') && isset($GLOBALS['INPUT_DATA']) ? $GLOBALS['INPUT_DATA'] : file_get_contents('php://input');
+    $data = json_decode($raw_input, true);
     $name = $data['name'] ?? '';
     if (!empty($name)) {
         do {
@@ -27,15 +41,24 @@ if ($method === 'GET') {
 
         $stmt = $pdo->prepare("INSERT INTO categories (user_id, name, color) VALUES (?, ?, ?)");
         $stmt->execute([$user_id, $name, $color]);
+        if (defined('TEST_MODE')) {
+             echo json_encode(['success' => true]);
+             return ['success' => true];
+        }
         echo json_encode(['success' => true]);
     }
 } elseif ($method === 'DELETE') {
     $id = $_GET['id'] ?? null;
     $stmt = $pdo->prepare("DELETE FROM categories WHERE id = ? AND user_id = ?");
     $stmt->execute([$id, $user_id]);
+    if (defined('TEST_MODE')) {
+        echo json_encode(['success' => true]);
+        return ['success' => true];
+    }
     echo json_encode(['success' => true]);
 } elseif ($method === 'PUT') {
-    $data = json_decode(file_get_contents('php://input'), true);
+    $raw_input = defined('TEST_MODE') && isset($GLOBALS['INPUT_DATA']) ? $GLOBALS['INPUT_DATA'] : file_get_contents('php://input');
+    $data = json_decode($raw_input, true);
     $id = $data['id'] ?? null;
     $name = $data['name'] ?? null;
     $color = $data['color'] ?? null;

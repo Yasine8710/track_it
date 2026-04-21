@@ -1,13 +1,16 @@
 <?php
 session_start();
 if (!isset($_SESSION['user_id'])) {
-    if (isset($_GET['logout'])) { session_destroy(); }
+    if (isset($_GET['logout'])) {
+        session_destroy();
+    }
     header('Location: index.php');
     exit;
 }
 require_once 'includes/db.php';
 
-function formatMoney($amount, $currency = 'TND') {
+function formatMoney($amount, $currency = 'TND')
+{
     $symbols = [
         'TND' => 'DT',
         'USD' => '$',
@@ -21,19 +24,42 @@ function formatMoney($amount, $currency = 'TND') {
     return $symbol . number_format((float)$amount, 2);
 }
 
-function getCategoryIcon($name) {
-    if (!$name) return 'fa-tag';
+function getCategoryIcon($name)
+{
+    if (!$name) {
+        return 'fa-tag';
+    }
     $name = strtolower($name);
-    if (strpos($name, 'food') !== false || strpos($name, 'dine') !== false || strpos($name, 'groc') !== false) return 'fa-utensils';
-    if (strpos($name, 'car') !== false || strpos($name, 'gas') !== false || strpos($name, 'trans') !== false) return 'fa-car';
-    if (strpos($name, 'util') !== false || strpos($name, 'electric') !== false) return 'fa-bolt';
-    if (strpos($name, 'rent') !== false || strpos($name, 'home') !== false || strpos($name, 'house') !== false) return 'fa-home';
-    if (strpos($name, 'health') !== false || strpos($name, 'med') !== false) return 'fa-heartbeat';
-    if (strpos($name, 'game') !== false || strpos($name, 'fun') !== false || strpos($name, 'entert') !== false) return 'fa-gamepad';
-    if (strpos($name, 'school') !== false || strpos($name, 'edu') !== false) return 'fa-graduation-cap';
-    if (strpos($name, 'bill') !== false) return 'fa-file-invoice';
-    if (strpos($name, 'shop') !== false || strpos($name, 'cloth') !== false) return 'fa-shopping-bag';
-    if (strpos($name, 'work') !== false || strpos($name, 'salary') !== false || strpos($name, 'wage') !== false) return 'fa-briefcase';
+    if (strpos($name, 'food') !== false || strpos($name, 'dine') !== false || strpos($name, 'groc') !== false) {
+        return 'fa-utensils';
+    }
+    if (strpos($name, 'car') !== false || strpos($name, 'gas') !== false || strpos($name, 'trans') !== false) {
+        return 'fa-car';
+    }
+    if (strpos($name, 'util') !== false || strpos($name, 'electric') !== false) {
+        return 'fa-bolt';
+    }
+    if (strpos($name, 'rent') !== false || strpos($name, 'home') !== false || strpos($name, 'house') !== false) {
+        return 'fa-home';
+    }
+    if (strpos($name, 'health') !== false || strpos($name, 'med') !== false) {
+        return 'fa-heartbeat';
+    }
+    if (strpos($name, 'game') !== false || strpos($name, 'fun') !== false || strpos($name, 'entert') !== false) {
+        return 'fa-gamepad';
+    }
+    if (strpos($name, 'school') !== false || strpos($name, 'edu') !== false) {
+        return 'fa-graduation-cap';
+    }
+    if (strpos($name, 'bill') !== false) {
+        return 'fa-file-invoice';
+    }
+    if (strpos($name, 'shop') !== false || strpos($name, 'cloth') !== false) {
+        return 'fa-shopping-bag';
+    }
+    if (strpos($name, 'work') !== false || strpos($name, 'salary') !== false || strpos($name, 'wage') !== false) {
+        return 'fa-briefcase';
+    }
     return 'fa-tag';
 }
 
@@ -183,8 +209,6 @@ $userCurrency = $user['currency'] ?? 'TND';
             .momentum-details { grid-template-columns: 1fr; }
             .momentum-graph { display: none; }
         }
-        .pet-card:hover { background: rgba(255,255,255,0.05); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        @media (max-width: 768px) { .pet-card { min-width: 100px; } }
         .chart-container { position: relative; width: 100%; max-width: 350px; margin: 0 auto; }
         .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
         .cat-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 8px; }
@@ -360,7 +384,7 @@ $userCurrency = $user['currency'] ?? 'TND';
                         <input type="number" id="quickAmount" class="modern-input" placeholder="0.00">
                         <select id="quickCat" class="modern-input dark-select-fix">
                             <option value="" style="background:#1a1a1a; color:#fff;">Category...</option>
-                            <?php foreach($userCats as $c): ?>
+                            <?php foreach ($userCats as $c) : ?>
                                 <option value="<?= $c['id'] ?>" style="background:#1a1a1a; color:#fff;"><?= htmlspecialchars($c['name']) ?></option>
                             <?php endforeach; ?>
                         </select>
@@ -371,10 +395,10 @@ $userCurrency = $user['currency'] ?? 'TND';
 
                 <h3 style="margin-bottom:20px; font-family:'Outfit';">Recent Activity</h3>
                 <div id="recent-list">
-                    <?php if(empty($recentOps)): ?>
+                    <?php if (empty($recentOps)) : ?>
                         <p style="text-align:center; padding:20px; color:var(--text-sub);">No transactions found.</p>
                     <?php endif; ?>
-                    <?php foreach ($recentOps as $tx): ?>
+                    <?php foreach ($recentOps as $tx) : ?>
                         <div class="premium-card" style="padding:16px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
                             <div style="display:flex; gap:16px; align-items:center;">
                                 <div style="width:40px; height:40px; border-radius:12px; background:rgba(255,255,255,0.03); display:flex; align-items:center; justify-content:center; color:<?= $tx['type'] == 'inflow' ? 'var(--success)' : 'var(--danger)' ?>;"><i class="fas <?= getCategoryIcon($tx['cat_name']) ?>"></i></div>
@@ -402,7 +426,7 @@ $userCurrency = $user['currency'] ?? 'TND';
                 <div class="premium-card" style="display: flex; flex-direction: column; justify-content: space-between;">
                     <div>
                         <h3 style="margin-bottom:20px; font-family:'Outfit';">Category Efficiency</h3>
-                        <?php foreach($catStats as $stat):?>
+                        <?php foreach ($catStats as $stat) :?>
                             <div style="margin-bottom:20px;">
                                 <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;">
                                     <span style="font-weight:600; display:flex; align-items:center; gap:8px;">
@@ -418,7 +442,7 @@ $userCurrency = $user['currency'] ?? 'TND';
                                     <?= round(($stat['total'] / max(1, $outflowTotal)) * 100) ?>% of budget
                                 </div>
                             </div>
-                        <?php endforeach; if(empty($catStats)): ?>
+                        <?php endforeach; if (empty($catStats)) : ?>
                             <div style="text-align:center; padding:40px; color:var(--text-sub); font-size:14px;">No data recorded yet.</div>
                         <?php endif; ?>
                     </div>
@@ -441,7 +465,7 @@ $userCurrency = $user['currency'] ?? 'TND';
                 <div style="display:flex; gap:12px; width:100%; max-width:400px;">
                     <select id="histCatFilter" class="modern-input dark-select-fix" style="flex:1;">
                         <option value="all" style="background:#1a1a1a; color:#fff;">Every Category</option>
-                        <?php foreach($userCats as $c): ?>
+                        <?php foreach ($userCats as $c) : ?>
                             <option value="<?= $c['id'] ?>" style="background:#1a1a1a; color:#fff;"><?= htmlspecialchars($c['name']) ?></option>
                         <?php endforeach; ?>
                     </select>
@@ -454,7 +478,7 @@ $userCurrency = $user['currency'] ?? 'TND';
             </div>
             
             <div id="history-container" style="display: grid; gap: 12px;">
-                <?php foreach ($allOps as $tx): ?>
+                <?php foreach ($allOps as $tx) : ?>
                     <div class="tx-row premium-card" data-cat="<?= $tx['cat_id'] ?>" data-type="<?= $tx['type'] ?>" data-desc="<?= strtolower($tx['description']) ?>" style="padding:16px; display:flex; justify-content:space-between; align-items:center; border: 1px solid var(--border); transition: transform 0.2s ease;">
                         <div style="display:flex; gap:16px; align-items:center;">
                             <div style="width:48px; height:48px; border-radius:14px; background:var(--surface); display:flex; align-items:center; justify-content:center; color:<?= $tx['type'] == 'inflow' ? 'var(--success)' : 'var(--danger)' ?>; font-size:18px;">
@@ -564,8 +588,14 @@ $userCurrency = $user['currency'] ?? 'TND';
                         <h3 style="margin-bottom:20px; font-family:'Outfit';">Category Vault</h3>
                         <div style="display:flex; gap:10px; margin-bottom:24px;"><input type="text" id="newCatName" class="modern-input" placeholder="Name..."><button onclick="addCategory()" class="btn-glass" style="width:48px; justify-content:center;"><i class="fas fa-plus"></i></button></div>
                         <div id="cat-list">
-                            <?php foreach($userCats as $cat): ?>
-                                <div class="cat-item"><span style="display:flex; align-items:center; gap:10px;"><?php if($cat['user_id']): ?><input type="color" value="<?= $cat['color'] ?>" onchange="updateCategoryColor(<?= $cat['id'] ?>, this.value)" style="width:18px;height:18px;border:none;padding:0;cursor:pointer;background:transparent;" title="Change color"><?php else: ?><div style="width:12px; height:12px; border-radius:3px; background:<?= $cat['color'] ?>;"></div><?php endif; ?><i class="fas <?= getCategoryIcon($cat['name']) ?>" style="opacity:0.5; font-size:12px;"></i> <?= htmlspecialchars($cat['name']) ?></span><?php if($cat['user_id']): ?><div style="display:flex; gap:10px;"><i class="fas fa-pen" style="color:var(--accent); cursor:pointer; opacity:0.6;" onclick="editCategoryName(<?= $cat['id'] ?>, '<?= htmlspecialchars(addslashes($cat['name'])) ?>')"></i><i class="fas fa-trash-alt" style="color:var(--danger); cursor:pointer; opacity:0.6;" onclick="delCategory(<?= $cat['id'] ?>)"></i></div><?php endif; ?></div>
+                            <?php foreach ($userCats as $cat) : ?>
+                                <div class="cat-item"><span style="display:flex; align-items:center; gap:10px;"><?php if ($cat['user_id']) :
+                                    ?><input type="color" value="<?= $cat['color'] ?>" onchange="updateCategoryColor(<?= $cat['id'] ?>, this.value)" style="width:18px;height:18px;border:none;padding:0;cursor:pointer;background:transparent;" title="Change color"><?php
+                                                                                                                else :
+                                                                                                                    ?><div style="width:12px; height:12px; border-radius:3px; background:<?= $cat['color'] ?>;"></div><?php
+                                                                                                                endif; ?><i class="fas <?= getCategoryIcon($cat['name']) ?>" style="opacity:0.5; font-size:12px;"></i> <?= htmlspecialchars($cat['name']) ?></span><?php if ($cat['user_id']) :
+    ?><div style="display:flex; gap:10px;"><i class="fas fa-pen" style="color:var(--accent); cursor:pointer; opacity:0.6;" onclick="editCategoryName(<?= $cat['id'] ?>, '<?= htmlspecialchars(addslashes($cat['name'])) ?>')"></i><i class="fas fa-trash-alt" style="color:var(--danger); cursor:pointer; opacity:0.6;" onclick="delCategory(<?= $cat['id'] ?>)"></i></div><?php
+                                                                                                                endif; ?></div>
                             <?php endforeach; ?>
                         </div>
                     </div>
@@ -893,10 +923,16 @@ $userCurrency = $user['currency'] ?? 'TND';
             const ctx = document.getElementById('spendingChart').getContext('2d');
             if(chart) chart.destroy();
             const data = {
-                labels: [<?php foreach($catStats as $s) echo "'".addslashes($s['name'])."',"; ?>],
+                labels: [<?php foreach ($catStats as $s) {
+                    echo "'" . addslashes($s['name']) . "',";
+                         } ?>],
                 datasets: [{
-                    data: [<?php foreach($catStats as $s) echo $s['total'].","; ?>],
-                    backgroundColor: [<?php foreach($catStats as $s) echo "'".$s['color']."',"; ?>],
+                    data: [<?php foreach ($catStats as $s) {
+                        echo $s['total'] . ",";
+                           } ?>],
+                    backgroundColor: [<?php foreach ($catStats as $s) {
+                        echo "'" . $s['color'] . "',";
+                                      } ?>],
                     borderWidth: 0
                 }]
             };

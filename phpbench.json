@@ -1,0 +1,5 @@
+{
+    "runner.path": "tests/performance",
+    "runner.bootstrap": "vendor/autoload.php",
+    "runner.php_disable_ini": true
+}

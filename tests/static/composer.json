@@ -1,0 +1,7 @@
+{
+    "require-dev": {
+        "phpstan/phpstan": "^2.1",
+        "phpmd/phpmd": "^2.15",
+        "squizlabs/php_codesniffer": "^4.0"
+    }
+}

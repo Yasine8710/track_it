@@ -1,9 +1,16 @@
 <?php
-require_once '../includes/db.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+if (!defined('TEST_MODE')) {
+    require_once '../includes/db.php';
+}
 
-header('Content-Type: application/json');
+if (!defined('TEST_MODE')) {
+    header('Content-Type: application/json');
+}
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && !defined('TEST_MODE')) {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
     exit;
 }
@@ -17,8 +24,12 @@ $address = trim($_POST['address'] ?? '');
 $bio = trim($_POST['bio'] ?? '');
 
 if (!$username || !$password) {
-    echo json_encode(['success' => false, 'message' => 'Username and password required']);
-    exit;
+    if (!defined('TEST_MODE')) {
+        echo json_encode(['success' => false, 'message' => 'Username and password required']);
+        exit;
+    } else {
+        return ['success' => false, 'message' => 'Username and password required'];
+    }
 }
 
 if ($action === 'register') {
@@ -26,8 +37,12 @@ if ($action === 'register') {
     $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
     $stmt->execute([$username]);
     if ($stmt->fetch()) {
-        echo json_encode(['success' => false, 'message' => 'Username already taken']);
-        exit;
+        if (!defined('TEST_MODE')) {
+            echo json_encode(['success' => false, 'message' => 'Username already taken']);
+            exit;
+        } else {
+            return ['success' => false, 'message' => 'Username already taken'];
+        }
     }
 
     $hash = password_hash($password, PASSWORD_DEFAULT);
@@ -56,10 +71,18 @@ if ($action === 'register') {
         }
 
         $pdo->commit();
-        echo json_encode(['success' => true, 'message' => 'User registered']);
+        if (!defined('TEST_MODE')) {
+            echo json_encode(['success' => true, 'message' => 'User registered']);
+        } else {
+            return ['success' => true, 'message' => 'User registered'];
+        }
     } catch (Exception $e) {
         $pdo->rollBack();
-        echo json_encode(['success' => false, 'message' => 'Registration failed: ' . $e->getMessage()]);
+        if (!defined('TEST_MODE')) {
+            echo json_encode(['success' => false, 'message' => 'Registration failed: ' . $e->getMessage()]);
+        } else {
+            return ['success' => false, 'message' => 'Registration failed: ' . $e->getMessage()];
+        }
     }
 
 } elseif ($action === 'login') {
@@ -68,11 +91,22 @@ if ($action === 'register') {
     $user = $stmt->fetch();
 
     if ($user && password_verify($password, $user['password'])) {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
-        echo json_encode(['success' => true, 'message' => 'Login successful']);
+        if (!defined('TEST_MODE')) {
+            echo json_encode(['success' => true, 'message' => 'Login successful']);
+        } else {
+            return ['success' => true, 'message' => 'Login successful'];
+        }
     } else {
-        echo json_encode(['success' => false, 'message' => 'Invalid credentials']);
+        if (!defined('TEST_MODE')) {
+            echo json_encode(['success' => false, 'message' => 'Invalid credentials']);
+        } else {
+            return ['success' => false, 'message' => 'Invalid credentials'];
+        }
     }
 } elseif ($action === 'logout') {
     session_destroy();

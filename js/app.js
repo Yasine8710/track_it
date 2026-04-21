@@ -566,6 +566,7 @@ function setupVoiceRecognition() {
     }
 
     voiceRecognition = new webkitSpeechRecognition();
+    window.voiceRecognition = voiceRecognition; // Expose to window for testing
     voiceRecognition.continuous = false;
     voiceRecognition.lang = 'en-US';
 

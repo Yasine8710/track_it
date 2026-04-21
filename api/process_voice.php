@@ -1,20 +1,39 @@
 <?php
-session_start();
-require_once '../includes/db.php';
-header('Content-Type: application/json');
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+if (!defined('TEST_MODE')) {
+    require_once '../includes/db.php';
+}
+if (!defined('TEST_MODE')) {
+    header('Content-Type: application/json');
+}
 
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
+    if (!defined('TEST_MODE')) {
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        exit;
+    } else {
+        return ['success' => false, 'message' => 'Unauthorized'];
+    }
 }
 
 $user_id = $_SESSION['user_id'];
-$input = json_decode(file_get_contents('php://input'), true);
+
+if (!defined('TEST_MODE')) {
+    $input = json_decode(file_get_contents('php://input'), true);
+} else {
+    $input = $mock_input ?? [];
+}
 $transcript = strtolower($input['transcript'] ?? '');
 
 if (empty($transcript)) {
-    echo json_encode(['success' => false, 'message' => 'Silence detected.']);
-    exit;
+    if (!defined('TEST_MODE')) {
+        echo json_encode(['success' => false, 'message' => 'Silence detected.']);
+        exit;
+    } else {
+        return ['success' => false, 'message' => 'Silence detected.'];
+    }
 }
 
 // 1. Extract Numeric Amount
@@ -24,8 +43,12 @@ if (preg_match('/(\d+(\.\d{1,2})?)/', $transcript, $matches)) {
 }
 
 if ($amount <= 0) {
-    echo json_encode(['success' => false, 'message' => "I heard you, but couldn't find an amount."]);
-    exit;
+    if (!defined('TEST_MODE')) {
+        echo json_encode(['success' => false, 'message' => "I heard you, but couldn't find an amount."]);
+        exit;
+    } else {
+        return ['success' => false, 'message' => "I heard you, but couldn't find an amount."];
+    }
 }
 
 // 2. Identify Intent (Inflow vs Outflow)
@@ -60,7 +83,15 @@ if (!$bestCategoryId && !empty($categories)) {
 try {
     $stmt = $pdo->prepare("INSERT INTO transactions (user_id, category_id, amount, type, description, transaction_date) VALUES (?, ?, ?, ?, ?, NOW())");
     $stmt->execute([$user_id, $bestCategoryId, $amount, $type, "Voice: " . $transcript]);
-    echo json_encode(['success' => true, 'message' => "Logged $type of $$amount"]);
+    if (!defined('TEST_MODE')) {
+        echo json_encode(['success' => true, 'message' => "Logged $type of $$amount"]);
+    } else {
+        return ['success' => true, 'message' => "Logged $type of $$amount"];
+    }
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    if (!defined('TEST_MODE')) {
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    } else {
+        return ['success' => false, 'message' => $e->getMessage()];
+    }
 }

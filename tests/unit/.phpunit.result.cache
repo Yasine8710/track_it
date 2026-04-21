@@ -1,0 +1,1 @@
+{"version":1,"defects":{"TransactionApiTest::testDeleteTransactionRequiresLogin":4,"TransactionApiTest::testAddTransactionSuccess":4,"TransactionApiTest::testAddTransactionInvalidAmount":4},"times":{"TransactionApiTest::testDeleteTransactionRequiresLogin":0.012,"TransactionApiTest::testAddTransactionSuccess":0.005,"TransactionApiTest::testAddTransactionInvalidAmount":0}}

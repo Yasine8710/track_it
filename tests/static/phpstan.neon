@@ -1,0 +1,17 @@
+parameters:
+    level: 5
+    paths:
+        - ../../api
+        - ../../includes
+        - ../../dashboard.php
+        - ../../register.php
+        - ../../index.php
+    excludePaths:
+        - ../../vendor/*
+    bootstrapFiles:
+        - phpstan_bootstrap.php
+    ignoreErrors:
+        - '#Variable \$_SESSION might not be defined.#'
+        - '#Constant TEST_MODE not found.#'
+        - '#whitespace.bom#'
+        - '#Variable \$pdo might not be defined.#'
