@@ -11,20 +11,11 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $username = $_POST['username'] ?? '';
 $email = $_POST['email'] ?? '';
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-$currency = $_POST['currency'] ?? 'USD';
-=======
-=======
->>>>>>> Stashed changes
+$currency = $_POST['currency'] ?? 'TND';
 $full_name = $_POST['full_name'] ?? '';
 $phone = $_POST['phone'] ?? '';
 $address = $_POST['address'] ?? '';
 $bio = $_POST['bio'] ?? '';
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 $pet_id = $_POST['pet_id'] ?? $_GET['pet_id'] ?? null;
 
 // Handle Avatar Upload
@@ -51,27 +42,11 @@ if (isset($_FILES['avatar_file']) && $_FILES['avatar_file']['error'] === UPLOAD_
 
 try {
     if ($profile_picture) {
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        $stmt = $pdo->prepare("UPDATE users SET username = ?, email = ?, currency = ?, profile_picture = ? WHERE id = ?");
-        $stmt->execute([$username, $email, $currency, $profile_picture, $user_id]);
+        $stmt = $pdo->prepare("UPDATE users SET username = ?, email = ?, currency = ?, full_name = ?, phone = ?, address = ?, bio = ?, profile_picture = ? WHERE id = ?");
+        $stmt->execute([$username, $email, $currency, $full_name, $phone, $address, $bio, $profile_picture, $user_id]);
     } else {
-        $stmt = $pdo->prepare("UPDATE users SET username = ?, email = ?, currency = ? WHERE id = ?");
-        $stmt->execute([$username, $email, $currency, $user_id]);
-=======
-        $stmt = $pdo->prepare("UPDATE users SET username = ?, email = ?, full_name = ?, phone = ?, address = ?, bio = ?, profile_picture = ? WHERE id = ?");
-        $stmt->execute([$username, $email, $full_name, $phone, $address, $bio, $profile_picture, $user_id]);
-    } else {
-        $stmt = $pdo->prepare("UPDATE users SET username = ?, email = ?, full_name = ?, phone = ?, address = ?, bio = ? WHERE id = ?");
-        $stmt->execute([$username, $email, $full_name, $phone, $address, $bio, $user_id]);
->>>>>>> Stashed changes
-=======
-        $stmt = $pdo->prepare("UPDATE users SET username = ?, email = ?, full_name = ?, phone = ?, address = ?, bio = ?, profile_picture = ? WHERE id = ?");
-        $stmt->execute([$username, $email, $full_name, $phone, $address, $bio, $profile_picture, $user_id]);
-    } else {
-        $stmt = $pdo->prepare("UPDATE users SET username = ?, email = ?, full_name = ?, phone = ?, address = ?, bio = ? WHERE id = ?");
-        $stmt->execute([$username, $email, $full_name, $phone, $address, $bio, $user_id]);
->>>>>>> Stashed changes
+        $stmt = $pdo->prepare("UPDATE users SET username = ?, email = ?, currency = ?, full_name = ?, phone = ?, address = ?, bio = ? WHERE id = ?");
+        $stmt->execute([$username, $email, $currency, $full_name, $phone, $address, $bio, $user_id]);
     }
     
     // Handle pet selection

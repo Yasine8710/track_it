@@ -7,11 +7,11 @@ if (!isset($_SESSION['user_id'])) {
 }
 require_once 'includes/db.php';
 
-function formatMoney($amount, $currency = 'USD') {
+function formatMoney($amount, $currency = 'TND') {
     $symbols = [
+        'TND' => 'DT',
         'USD' => '$',
         'EUR' => '€',
-        'TND' => 'DT', // TND symbol
         'GBP' => '£',
         'CAD' => 'CA$',
         'AUD' => 'A$',
@@ -92,7 +92,7 @@ $stmtCats = $pdo->prepare("SELECT * FROM categories WHERE user_id = ? OR user_id
 $stmtCats->execute([$user_id]);
 $userCats = $stmtCats->fetchAll();
 
-$userCurrency = $user['currency'] ?? 'USD';
+$userCurrency = $user['currency'] ?? 'TND';
 
 ?>
 <!DOCTYPE html>
@@ -101,6 +101,7 @@ $userCurrency = $user['currency'] ?? 'USD';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DINERI | Workspace</title>
+    <meta name="color-scheme" content="dark light">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -196,12 +197,46 @@ $userCurrency = $user['currency'] ?? 'USD';
         .qe-tab.active { background: var(--card); color: var(--text-main); }
         .qe-tab.active.expense { color: var(--danger); }
         .qe-tab.active.income { color: var(--success); }
-        .calendar-day { background: rgba(255,255,255,0.02); padding: 8px; border-radius: 8px; border: 1px solid var(--border); min-height: 70px; display: flex; flex-direction: column; }
-        .calendar-day-header { font-size: 12px; font-weight: 700; color: var(--text-sub); text-align: right; margin-bottom: 4px; }
-        .calendar-event { font-size: 11px; padding: 2px 4px; border-radius: 4px; font-weight: 600; text-align: center; margin-top: auto; }
-        .calendar-event.flow-positive { background: rgba(168,230,207,0.2); color: var(--success); }
-        .calendar-event.flow-negative { background: rgba(255,183,178,0.2); color: var(--danger); }
-        .calendar-day.clickable { cursor: pointer; transition: 0.2s; }
+        .calendar-grid { 
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr); 
+            gap: 4px; 
+            background: rgba(255,255,255,0.01);
+            border-radius: 12px;
+            padding: 4px;
+        }
+        .calendar-day { 
+            background: rgba(255,255,255,0.02); 
+            padding: 6px; 
+            border-radius: 10px; 
+            border: 1px solid var(--border); 
+            min-height: 85px; 
+            display: flex; 
+            flex-direction: column; 
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        .calendar-day-header { font-size: 11px; font-weight: 700; color: var(--text-sub); text-align: right; margin-bottom: 2px; }
+        .calendar-event { 
+            font-size: 9px; 
+            padding: 3px 2px; 
+            border-radius: 6px; 
+            font-weight: 700; 
+            text-align: center; 
+            margin-top: auto;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        @media (max-width: 640px) {
+            .calendar-day { min-height: 60px; padding: 4px; }
+            .calendar-day-header { font-size: 10px; }
+            .calendar-event { font-size: 8px; padding: 2px; letter-spacing: -0.5px; }
+            .calendar-grid { gap: 2px; padding: 2px; }
+        }
+        .calendar-event.flow-positive { background: rgba(16,185,129,0.15); color: var(--success); border: 1px solid rgba(16,185,129,0.2); }
+        .calendar-event.flow-negative { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); }
+        .calendar-day.clickable { cursor: pointer; }
         .calendar-day.clickable:hover { background: rgba(255,255,255,0.05); border-color: var(--accent); }
         .calendar-day.active { border-color: var(--accent); background: rgba(212,180,245,0.1); }
         .wish-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-top: 24px; }
@@ -228,7 +263,15 @@ $userCurrency = $user['currency'] ?? 'USD';
     </style>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
-<body>
+<body style="color-scheme: dark;">
+    <div id="toast"></div>
+    <script>
+        if (localStorage.getItem('theme') === 'light') {
+            document.body.style.colorScheme = 'light';
+        } else {
+            document.documentElement.style.colorScheme = 'dark';
+        }
+    </script>
     <aside class="sidebar">
         <div style="display:flex; align-items:center; gap:12px; margin-bottom: 48px;">
             <div style="width:40px; height:40px; background:var(--accent); border-radius:10px; display:flex; align-items:center; justify-content:center; color:#000;"><i class="fas fa-wallet"></i></div>
@@ -315,10 +358,10 @@ $userCurrency = $user['currency'] ?? 'USD';
                     </div>
                     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:12px;">
                         <input type="number" id="quickAmount" class="modern-input" placeholder="0.00">
-                        <select id="quickCat" class="modern-input">
-                            <option value="">Category...</option>
+                        <select id="quickCat" class="modern-input dark-select-fix">
+                            <option value="" style="background:#1a1a1a; color:#fff;">Category...</option>
                             <?php foreach($userCats as $c): ?>
-                                <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['name']) ?></option>
+                                <option value="<?= $c['id'] ?>" style="background:#1a1a1a; color:#fff;"><?= htmlspecialchars($c['name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                         <input type="text" id="quickDesc" class="modern-input" placeholder="Memo...">
@@ -390,24 +433,47 @@ $userCurrency = $user['currency'] ?? 'USD';
 
         <!-- HISTORY -->
         <div id="section-history" class="view-section">
-            <div style="margin-bottom:20px; display:flex; gap:12px;">
-                <input type="text" id="histSearch" class="modern-input" placeholder="Search..." style="flex:1;">
-                <select id="histCatFilter" class="modern-input" style="width:140px;">
-                    <option value="all">Categories</option>
-                    <?php foreach($userCats as $c): ?>
-                        <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['name']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <select id="histFilter" class="modern-input" style="width:110px;"><option value="all">Type</option><option value="inflow">Inflow</option><option value="outflow">Outflow</option></select>
+            <div style="margin-bottom:24px; display:flex; gap:12px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:200px; position:relative;">
+                    <i class="fas fa-search" style="position:absolute; left:16px; top:50%; transform:translateY(-50%); color:var(--text-sub); pointer-events:none;"></i>
+                    <input type="text" id="histSearch" class="modern-input" placeholder="Search transactions..." style="padding-left:44px;">
+                </div>
+                <div style="display:flex; gap:12px; width:100%; max-width:400px;">
+                    <select id="histCatFilter" class="modern-input dark-select-fix" style="flex:1;">
+                        <option value="all" style="background:#1a1a1a; color:#fff;">Every Category</option>
+                        <?php foreach($userCats as $c): ?>
+                            <option value="<?= $c['id'] ?>" style="background:#1a1a1a; color:#fff;"><?= htmlspecialchars($c['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <select id="histFilter" class="modern-input dark-select-fix" style="flex:1;">
+                        <option value="all" style="background:#1a1a1a; color:#fff;">All Types</option>
+                        <option value="inflow" style="background:#1a1a1a; color:#fff;">Inflow</option>
+                        <option value="outflow" style="background:#1a1a1a; color:#fff;">Outflow</option>
+                    </select>
+                </div>
             </div>
-            <div id="history-container">
+            
+            <div id="history-container" style="display: grid; gap: 12px;">
                 <?php foreach ($allOps as $tx): ?>
-                    <div class="tx-row premium-card" data-cat="<?= $tx['cat_id'] ?>" data-type="<?= $tx['type'] ?>" data-desc="<?= strtolower($tx['description']) ?>" style="padding:16px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-                        <div style="display:flex; gap:166px; align-items:center;">
-                            <div style="width:40px; height:40px; border-radius:12px; background:rgba(255,255,255,0.03); display:flex; align-items:center; justify-content:center; color:<?= $tx['type'] == 'inflow' ? 'var(--success)' : 'var(--danger)' ?>;"><i class="fas <?= getCategoryIcon($tx['cat_name']) ?>"></i></div>
-                            <div><p style="font-weight:600;"><?= htmlspecialchars($tx['description'] ?: $tx['cat_name']) ?></p><p style="font-size:12px; color:var(--text-sub);"><?= date('M d, Y', strtotime($tx['transaction_date'])) ?></p></div>
+                    <div class="tx-row premium-card" data-cat="<?= $tx['cat_id'] ?>" data-type="<?= $tx['type'] ?>" data-desc="<?= strtolower($tx['description']) ?>" style="padding:16px; display:flex; justify-content:space-between; align-items:center; border: 1px solid var(--border); transition: transform 0.2s ease;">
+                        <div style="display:flex; gap:16px; align-items:center;">
+                            <div style="width:48px; height:48px; border-radius:14px; background:var(--surface); display:flex; align-items:center; justify-content:center; color:<?= $tx['type'] == 'inflow' ? 'var(--success)' : 'var(--danger)' ?>; font-size:18px;">
+                                <i class="fas <?= getCategoryIcon($tx['cat_name']) ?>"></i>
+                            </div>
+                            <div>
+                                <p style="font-weight:600; font-size:16px; color:var(--text-main);"><?= htmlspecialchars($tx['description'] ?: $tx['cat_name']) ?></p>
+                                <p style="font-size:12px; color:var(--text-sub); margin-top:2px;">
+                                    <i class="far fa-calendar-alt" style="margin-right:4px;"></i><?= date('M d, Y', strtotime($tx['transaction_date'])) ?>
+                                    <span style="margin: 0 8px; opacity:0.3;">|</span>
+                                    <i class="fas fa-tag" style="margin-right:4px;"></i><?= htmlspecialchars($tx['cat_name'] ?: 'Uncategorized') ?>
+                                </p>
+                            </div>
                         </div>
-                        <div style="text-align:right;"><p style="font-weight:700; color:<?= $tx['type'] == 'inflow' ? 'var(--success)' : 'var(--danger)' ?>;"><?= $tx['type'] == 'inflow' ? '+' : '-' ?><span class="tx-amt-display"><?= formatMoney($tx['amount'], $userCurrency) ?></span></p><div style="display:flex; gap:8px; justify-content:flex-end;"><span onclick="editTx(<?= $tx['id'] ?>, <?= $tx['amount'] ?>)" style="font-size:11px; color:var(--accent); cursor:pointer;">Edit</span><span onclick="deleteTx(<?= $tx['id'] ?>)" style="font-size:11px; color:var(--danger); cursor:pointer;">Delete</span></div></div>
+                        <div style="text-align:right;">
+                            <p style="font-weight:700; font-size:18px; font-family:'Outfit'; color:<?= $tx['type'] == 'inflow' ? 'var(--success)' : 'var(--danger)' ?>;">
+                                <?= $tx['type'] == 'inflow' ? '+' : '-' ?><span class="tx-amt-display"><?= formatMoney($tx['amount'], $userCurrency) ?></span>
+                            </p>
+                        </div>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -461,14 +527,14 @@ $userCurrency = $user['currency'] ?? 'USD';
                         <div class="premium-input-group"><label>Display Name</label><input type="text" name="username" value="<?= htmlspecialchars($user['username']) ?>" class="modern-input"></div>
                         <div class="premium-input-group"><label>Email Address</label><input type="email" name="email" value="<?= htmlspecialchars($user['email']) ?>" class="modern-input"></div>
                         <div class="premium-input-group"><label>Currency Preference</label>
-                            <select name="currency" class="modern-input">
-                                <option value="USD" <?= $userCurrency === 'USD' ? 'selected' : '' ?>>United States Dollar (USD)</option>
-                                <option value="EUR" <?= $userCurrency === 'EUR' ? 'selected' : '' ?>>Euro (EUR)</option>
-                                <option value="TND" <?= $userCurrency === 'TND' ? 'selected' : '' ?>>Tunisian Dinar (TND)</option>
-                                <option value="GBP" <?= $userCurrency === 'GBP' ? 'selected' : '' ?>>British Pound (GBP)</option>
-                                <option value="CAD" <?= $userCurrency === 'CAD' ? 'selected' : '' ?>>Canadian Dollar (CAD)</option>
-                                <option value="AUD" <?= $userCurrency === 'AUD' ? 'selected' : '' ?>>Australian Dollar (AUD)</option>
-                                <option value="JPY" <?= $userCurrency === 'JPY' ? 'selected' : '' ?>>Japanese Yen (JPY)</option>
+                            <select name="currency" class="modern-input dark-select-fix">
+                                <option value="TND" <?= $userCurrency === 'TND' ? 'selected' : '' ?> style="background:#1a1a1a; color:#fff;">Tunisian Dinar (TND)</option>
+                                <option value="USD" <?= $userCurrency === 'USD' ? 'selected' : '' ?> style="background:#1a1a1a; color:#fff;">United States Dollar (USD)</option>
+                                <option value="EUR" <?= $userCurrency === 'EUR' ? 'selected' : '' ?> style="background:#1a1a1a; color:#fff;">Euro (EUR)</option>
+                                <option value="GBP" <?= $userCurrency === 'GBP' ? 'selected' : '' ?> style="background:#1a1a1a; color:#fff;">British Pound (GBP)</option>
+                                <option value="CAD" <?= $userCurrency === 'CAD' ? 'selected' : '' ?> style="background:#1a1a1a; color:#fff;">Canadian Dollar (CAD)</option>
+                                <option value="AUD" <?= $userCurrency === 'AUD' ? 'selected' : '' ?> style="background:#1a1a1a; color:#fff;">Australian Dollar (AUD)</option>
+                                <option value="JPY" <?= $userCurrency === 'JPY' ? 'selected' : '' ?> style="background:#1a1a1a; color:#fff;">Japanese Yen (JPY)</option>
                             </select>
                         </div>
                         <button type="submit" class="btn-glass" style="width:100%; justify-content:center; background:var(--accent); color:#000; border:none; font-weight:700; margin-bottom:12px;">Sync Profile</button>
@@ -478,7 +544,7 @@ $userCurrency = $user['currency'] ?? 'USD';
                 <div style="display:flex; flex-direction:column; gap:24px;">
                     <div class="premium-card">
                         <h3 style="margin-bottom:20px; font-family:'Outfit';">Environment</h3>
-                        <div class="premium-input-group"><label>Visual Mode</label><select id="themeSelect" class="modern-input"><option value="dark">Obsidian Dark</option><option value="light">Crystal Light</option></select></div>
+                        <div class="premium-input-group"><label>Visual Mode</label><select id="themeSelect" class="modern-input dark-select-fix"><option value="dark" style="background:#1a1a1a; color:#fff;">Obsidian Dark</option><option value="light" style="background:#1a1a1a; color:#fff;">Crystal Light</option></select></div>
                     </div>
                     <div class="premium-card" style="background: linear-gradient(135deg, rgba(56,189,248,0.1), rgba(16,185,129,0.12)); border-color: rgba(16,185,129,0.18);">
                         <h3 style="margin-bottom:20px; font-family:'Outfit';">Workspace Pulse</h3>
@@ -522,21 +588,9 @@ $userCurrency = $user['currency'] ?? 'USD';
                 const res = await fetch('api/data.php');
                 const data = await res.json();
                 if(data.success) {
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                    document.getElementById('dynamic-balance').innerText = getFormattedMoney(data.balance);
-                    document.getElementById('dynamic-inflow').innerText = '+' + getFormattedMoney(data.inflow);
-                    document.getElementById('dynamic-outflow').innerText = '-' + getFormattedMoney(data.outflow);
-=======
                     document.getElementById('dynamic-balance').innerText = formatCurrency(data.balance);
                     document.getElementById('dynamic-inflow').innerText = '+' + formatCurrency(data.inflow);
                     document.getElementById('dynamic-outflow').innerText = '-' + formatCurrency(data.outflow);
->>>>>>> Stashed changes
-=======
-                    document.getElementById('dynamic-balance').innerText = formatCurrency(data.balance);
-                    document.getElementById('dynamic-inflow').innerText = '+' + formatCurrency(data.inflow);
-                    document.getElementById('dynamic-outflow').innerText = '-' + formatCurrency(data.outflow);
->>>>>>> Stashed changes
                     if(document.getElementById('dynamic-outflow-perc')) {
                         const iAmount = parseFloat(data.inflow) || 0;
                         const oAmount = parseFloat(data.outflow) || 0;
@@ -617,18 +671,8 @@ $userCurrency = $user['currency'] ?? 'USD';
                         <div class="wish-progress-fill" style="width: ${perc}%; ${isCompleted ? 'background:var(--success);' : ''}"></div>
                     </div>
                     <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:600; margin-bottom:20px;">
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                        <span style="color:${isCompleted ? 'var(--success)' : 'var(--success)'};">${getFormattedMoney(parseFloat(w.current_amount))}</span>
-                        <span style="color:var(--text-sub);">Goal: ${getFormattedMoney(parseFloat(w.target_amount))}</span>
-=======
                         <span style="color:${isCompleted ? 'var(--success)' : 'var(--success)'};">${formatCurrency(parseFloat(w.current_amount))}</span>
                         <span style="color:var(--text-sub);">Goal: ${formatCurrency(parseFloat(w.target_amount))}</span>
->>>>>>> Stashed changes
-=======
-                        <span style="color:${isCompleted ? 'var(--success)' : 'var(--success)'};">${formatCurrency(parseFloat(w.current_amount))}</span>
-                        <span style="color:var(--text-sub);">Goal: ${formatCurrency(parseFloat(w.target_amount))}</span>
->>>>>>> Stashed changes
                     </div>
                     ${isCompleted ? 
                         `<button class="btn-glass" style="width:100%; justify-content:center; background:rgba(16,185,129,0.1); color:var(--success); border:1px solid rgba(16,185,129,0.3); pointer-events:none;">
@@ -659,6 +703,10 @@ $userCurrency = $user['currency'] ?? 'USD';
             document.getElementById('wishFundAmount').value = '';
             document.getElementById('wishFundAmount').max = maxAllowed;
             document.getElementById('wishFundAmount').focus();
+
+            // Update currency symbol dynamically
+            const symbols = { 'TND': 'DT', 'USD': '$', 'EUR': '€', 'GBP': '£', 'CAD': 'CA$', 'AUD': 'A$', 'JPY': '¥' };
+            document.getElementById('wishFundCurrency').innerText = symbols[USER_CURRENCY] || USER_CURRENCY;
         }
 
         async function submitWishFund() {
@@ -669,15 +717,7 @@ $userCurrency = $user['currency'] ?? 'USD';
             
             if(amt && !isNaN(amt) && amt > 0) {
                 if (amt > max) {
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                    alert('You cannot exceed the target goal! Maximum allowed to complete this wish is ' + getFormattedMoney(max));
-=======
                     alert('You cannot exceed the target goal! Maximum allowed to complete this wish is ' + formatCurrency(max));
->>>>>>> Stashed changes
-=======
-                    alert('You cannot exceed the target goal! Maximum allowed to complete this wish is ' + formatCurrency(max));
->>>>>>> Stashed changes
                     return;
                 }
                 const res = await fetch('api/wishes.php', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id, amount: amt})});
@@ -725,6 +765,21 @@ $userCurrency = $user['currency'] ?? 'USD';
             renderCalendar();
         }
 
+        const getCatIconJS = (name) => {
+            if(!name) return 'fa-tag';
+            name = name.toLowerCase();
+            if(name.includes('food') || name.includes('dine') || name.includes('groc')) return 'fa-utensils';
+            if(name.includes('car') || name.includes('gas') || name.includes('trans')) return 'fa-car';
+            if(name.includes('util') || name.includes('electric')) return 'fa-bolt';
+            if(name.includes('rent') || name.includes('home') || name.includes('house')) return 'fa-home';
+            if(name.includes('health') || name.includes('med')) return 'fa-heartbeat';
+            if(name.includes('game') || name.includes('fun')) return 'fa-gamepad';
+            if(name.includes('school') || name.includes('edu')) return 'fa-graduation-cap';
+            if(name.includes('shop') || name.includes('cloth')) return 'fa-shopping-bag';
+            if(name.includes('work') || name.includes('salary')) return 'fa-briefcase';
+            return 'fa-tag';
+        };
+
         function renderCalendar() {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
@@ -735,10 +790,10 @@ $userCurrency = $user['currency'] ?? 'USD';
             const grid = document.getElementById('calendarGrid');
             grid.innerHTML = '';
             
-            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
             days.forEach(d => {
                 const h = document.createElement('div');
-                h.style.cssText = 'text-align:center; font-size:12px; font-weight:700; color:var(--text-sub); margin-bottom:8px;';
+                h.style.cssText = 'text-align:center; font-size:10px; font-weight:800; color:var(--text-sub); margin-bottom:4px; opacity:0.6;';
                 h.innerText = d;
                 grid.appendChild(h);
             });
@@ -755,7 +810,11 @@ $userCurrency = $user['currency'] ?? 'USD';
             for(let d=1; d<=daysInMonth; d++) {
                 const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                 
-                const dayOps = allTransactions.filter(t => typeof t.transaction_date === 'string' && t.transaction_date.startsWith(dateStr));
+                const dayOps = allTransactions.filter(t => {
+                    if (!t.transaction_date) return false;
+                    const txDate = t.transaction_date.split(' ')[0];
+                    return txDate === dateStr;
+                });
                 
                 const cell = document.createElement('div');
                 cell.className = 'calendar-day clickable';
@@ -770,15 +829,7 @@ $userCurrency = $user['currency'] ?? 'USD';
                     });
                     const cls = total >= 0 ? 'flow-positive' : 'flow-negative';
                     const sign = total >= 0 ? '+' : '';
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                    html += `<div class="calendar-event ${cls}">${sign}${getFormattedMoney(Math.abs(total))}</div>`;
-=======
                     html += `<div class="calendar-event ${cls}">${sign}${formatCurrency(Math.abs(total))}</div>`;
->>>>>>> Stashed changes
-=======
-                    html += `<div class="calendar-event ${cls}">${sign}${formatCurrency(Math.abs(total))}</div>`;
->>>>>>> Stashed changes
                 }
                 
                 cell.onclick = () => showDayDetails(dateStr, dayOps, cell);
@@ -786,7 +837,6 @@ $userCurrency = $user['currency'] ?? 'USD';
                 grid.appendChild(cell);
             }
             
-            // Trailing empty days to fill the row
             const totalCells = firstDay + daysInMonth;
             const trailingDays = (7 - (totalCells % 7)) % 7;
             for(let i=1; i<=trailingDays; i++) {
@@ -806,20 +856,6 @@ $userCurrency = $user['currency'] ?? 'USD';
             document.getElementById('calendar-day-title').innerText = 'Transactions on ' + dateStr;
             
             const list = document.getElementById('calendar-day-list');
-            const getCatIconJS = (name) => {
-                if(!name) return 'fa-tag';
-                name = name.toLowerCase();
-                if(name.includes('food') || name.includes('dine') || name.includes('groc')) return 'fa-utensils';
-                if(name.includes('car') || name.includes('gas') || name.includes('trans')) return 'fa-car';
-                if(name.includes('util') || name.includes('electric')) return 'fa-bolt';
-                if(name.includes('rent') || name.includes('home') || name.includes('house')) return 'fa-home';
-                if(name.includes('health') || name.includes('med')) return 'fa-heartbeat';
-                if(name.includes('game') || name.includes('fun')) return 'fa-gamepad';
-                if(name.includes('school') || name.includes('edu')) return 'fa-graduation-cap';
-                if(name.includes('shop') || name.includes('cloth')) return 'fa-shopping-bag';
-                if(name.includes('work') || name.includes('salary')) return 'fa-briefcase';
-                return 'fa-tag';
-            };
             
             let html = '';
             if(ops.length > 0) {
@@ -828,22 +864,15 @@ $userCurrency = $user['currency'] ?? 'USD';
                     const color = isIncome ? 'var(--success)' : 'var(--danger)';
                     const sign = isIncome ? '+' : '-';
                     return `<div class="cat-item" style="border:1px solid rgba(255,255,255,0.05); padding:10px; border-radius:12px;">
-                        <div style="display:flex; align-items:center; justify-content:space-between;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; width: 100%;">
                             <div style="display:flex; align-items:center; gap:12px;">
                                 <div style="width:32px; height:32px; border-radius:8px; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; color:${color};"><i class="fas ${getCatIconJS(op.cat_name)}"></i></div>
-                                <div>
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                                    <div style="font-weight:600; color:${color}">${sign}${getFormattedMoney(parseFloat(op.amount))}</div>
-=======
-                                    <div style="font-weight:600; color:${color}">${sign}${formatCurrency(parseFloat(op.amount))}</div>
->>>>>>> Stashed changes
-=======
-                                    <div style="font-weight:600; color:${color}">${sign}${formatCurrency(parseFloat(op.amount))}</div>
->>>>>>> Stashed changes
-                                    <div style="font-size:11px; color:var(--text-sub);">${op.cat_name || 'Uncategorized'} - ${op.description || 'No notes'}</div>
+                                <div style="text-align: left;">
+                                    <div style="font-weight:600; color:var(--text-main)">${op.description || op.cat_name || 'Uncategorized'}</div>
+                                    <div style="font-size:11px; color:var(--text-sub);">${op.cat_name || 'General'}</div>
                                 </div>
                             </div>
+                            <div style="font-weight:700; color:${color}">${sign}${formatCurrency(parseFloat(op.amount))}</div>
                         </div>
                     </div>`;
                 }).join('');
@@ -851,12 +880,12 @@ $userCurrency = $user['currency'] ?? 'USD';
                 html += `<div style="text-align:center; padding:12px; color:var(--text-sub); background:rgba(255,255,255,0.02); border-radius:12px;">No transactions recorded for this day.</div>`;
             }
             
-            // Add shortcut button to create a transaction on this specific day!
             html += `<div style="margin-top:16px; display:flex; justify-content:center;">
-                <button class="btn-glass" onclick="document.getElementById('section-home').scrollIntoView(); switchView('home'); alert('Add your transaction now (System typically logs for today automatically)');" style="padding:6px 14px; font-size:12px;"><i class="fas fa-plus"></i> Add Entry</button>
+                <button class="btn-glass" onclick="switchView('home');" style="padding:6px 14px; font-size:12px;"><i class="fas fa-plus"></i> Add Entry</button>
             </div>`;
             
             list.innerHTML = html;
+            list.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         let chart = null;
@@ -925,19 +954,54 @@ $userCurrency = $user['currency'] ?? 'USD';
             if((await res.json()).success) { closeBalanceModal(); syncStats().then(() => setTimeout(() => location.reload(), 1500)); }
         }
 
+        function showToast(msg, isError = false) {
+            console.log("Toast Triggered: " + msg);
+            // Remove any existing toast
+            const oldToast = document.querySelector('.dynamic-toast');
+            if (oldToast) oldToast.remove();
+
+            const toast = document.createElement('div');
+            toast.className = 'dynamic-toast';
+            toast.style.display = 'flex'; // Force display
+            toast.style.opacity = '0';
+            toast.innerHTML = `
+                <div class="toast-content" style="display:flex; align-items:center; gap:12px;">
+                    <div class="toast-icon" style="min-width:32px; height:32px; border-radius:10px; background:${isError ? 'var(--danger)' : 'var(--accent)'}; display:flex; align-items:center; justify-content:center; color:#000;">
+                        <i class="fas ${isError ? 'fa-times' : 'fa-check'}"></i>
+                    </div>
+                    <div class="toast-msg" style="color:#fff; font-weight:600; font-size:14px;">${msg}</div>
+                </div>
+                <div class="toast-loader-bg" style="width:100%; height:3px; background:rgba(255,255,255,0.1); border-radius:10px; overflow:hidden; margin-top:12px;">
+                    <div class="toast-loader-fill" style="height:100%; width:100%; background:#10b981; transform-origin:left; animation:toastProgress 2.5s linear forwards;"></div>
+                </div>
+            `;
+            document.body.appendChild(toast);
+
+            // Trigger enter animation with a small delay for DOM painting
+            requestAnimationFrame(() => {
+                toast.classList.add('active');
+            });
+
+            // Exit animation
+            setTimeout(() => {
+                toast.classList.add('exit');
+                setTimeout(() => toast.remove(), 600);
+            }, 2600);
+        }
+
         document.getElementById('profileForm').onsubmit = async (e) => {
             e.preventDefault();
             try {
                 const response = await fetch('api/save_settings.php', { method: 'POST', body: new FormData(e.target) });
                 const json = await response.json();
                 if(json.success) { 
-                    alert('Synced.'); 
-                    location.reload(); 
+                    showToast('Profile Synced!'); 
+                    setTimeout(() => location.reload(), 1200);
                 } else {
-                    alert('Error: ' + (json.message || 'Failed to sync.'));
+                    showToast(json.message || 'Failed to sync.', true);
                 }
             } catch (err) {
-                alert('Network error.');
+                showToast('Network error.', true);
             }
         };
 
@@ -960,15 +1024,34 @@ $userCurrency = $user['currency'] ?? 'USD';
         };
     </script>
     <!-- Wish Funding Modal -->
-    <div id="wishFundModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; padding:20px;">
-        <div class="premium-card" style="width:100%; max-width:400px; padding:30px; position:relative;">
-            <i class="fas fa-times" style="position:absolute; top:20px; right:20px; cursor:pointer; color:var(--text-sub);" onclick="closeWishFundModal()"></i>
-            <h3 id="wishFundTitle" style="font-family:'Outfit'; margin-bottom:10px;">Fund Wish</h3>
-            <p style="font-size:13px; color:var(--text-sub); margin-bottom:20px;">This amount will be deducted from your main balance explicitly as an outflow transaction to ensure records stay accurate.</p>
+    <div id="wishFundModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(5,5,5,0.92); backdrop-filter:blur(10px); z-index:9999; align-items:center; justify-content:center; padding:20px; animation: fadeIn 0.3s ease;">
+        <div class="premium-card" style="width:100%; max-width:420px; padding:40px; position:relative; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); border: 1px solid rgba(255,255,255,0.1);">
+            <div style="position:absolute; top:24px; right:24px; width:32px; height:32px; border-radius:10px; background:var(--surface); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text-sub); transition: 0.3s;" onclick="closeWishFundModal()" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text-sub)'">
+                <i class="fas fa-times"></i>
+            </div>
+            
+            <div style="text-align:center; margin-bottom:30px;">
+                <div style="width:64px; height:64px; background:var(--accent-glow); color:var(--accent); border-radius:20px; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; font-size:24px;">
+                    <i class="fas fa-piggy-bank"></i>
+                </div>
+                <h3 id="wishFundTitle" style="font-family:'Outfit'; font-size:24px; margin-bottom:8px;">Fund: car</h3>
+                <p style="font-size:14px; color:var(--text-sub); line-height:1.6;">Transfer funds to your wish. This will be recorded as an outflow entry to maintain balance accuracy.</p>
+            </div>
+
             <input type="hidden" id="wishFundId">
             <input type="hidden" id="wishFundMax">
-            <input type="number" id="wishFundAmount" class="input-glass" style="margin-bottom:20px; font-size:24px; text-align:center;" placeholder="0.00">
-            <button class="btn-glass" style="width:100%; justify-content:center; background:var(--accent); color:#000; border:none; font-weight:700;" onclick="submitWishFund()">Confirm Transfer</button>
+            
+            <div style="position:relative; margin-bottom:30px;">
+                <label style="display:block; font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-sub); margin-bottom:10px; letter-spacing:1px; text-align:center;">Amount to Transfer</label>
+                <div style="display:flex; align-items:center; justify-content:center; position:relative;">
+                    <span id="wishFundCurrency" style="position:absolute; left:20px; font-size:24px; font-weight:700; color:var(--accent); opacity:0.8;"><?= $userCurrency ?></span>
+                    <input type="number" id="wishFundAmount" class="modern-input" style="font-size:32px; text-align:center; font-family:'Outfit'; font-weight:700; padding:20px; background:rgba(255,255,255,0.03); border-radius:20px; border-color:rgba(139, 92, 246, 0.3);" placeholder="0.00" step="0.01">
+                </div>
+            </div>
+
+            <button class="btn-glass" style="width:100%; justify-content:center; background:var(--accent); color:#000; border:none; padding:18px; font-weight:700; font-size:16px; border-radius:18px; box-shadow: 0 10px 20px var(--accent-glow);" onclick="submitWishFund()">
+                <i class="fas fa-paper-plane" style="margin-right:8px;"></i> Confirm Transfer
+            </button>
         </div>
     </div>
 </body>

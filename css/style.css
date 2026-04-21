@@ -43,8 +43,63 @@ body { background-color: var(--bg); color: var(--text-main); font-family: var(--
 }
 .btn-glass:hover { background: var(--accent); color: #000; border-color: var(--accent); }
 
-.modern-input { width: 100%; padding: 14px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 16px; color: var(--text-main); outline: none; transition: all var(--transition); font-family: inherit; }
-.modern-input:focus { border-color: var(--accent); background: var(--surface); }
+.modern-input { 
+    width: 100%; 
+    padding: 14px; 
+    background: var(--input-bg); 
+    border: 1px solid var(--border); 
+    border-radius: 16px; 
+    color: var(--text-main); 
+    outline: none; 
+    transition: all var(--transition); 
+    font-family: inherit;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23A1A1AA'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7' /%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 16px;
+}
+
+select.modern-input {
+    padding-right: 44px;
+    cursor: pointer;
+}
+
+/* ABSOLUTE FIX for Dropdowns in Dark Mode */
+html:not(.light) select.modern-input,
+html:not(.light) select,
+html:not(.light) #quickCat,
+html:not(.light) #histCatFilter {
+    background-color: #111111 !important;
+    color: #FFFFFF !important;
+    color-scheme: dark !important;
+}
+
+html:not(.light) select.modern-input option,
+html:not(.light) select option,
+#quickCat option {
+    background-color: #1A1A1A !important;
+    color: #FFFFFF !important;
+}
+
+/* Specific fix for Chrome/Edge system overlays */
+html:not(.light) select option {
+    background-color: #111111 !important;
+    color: #FFFFFF !important;
+}
+
+/* Force dark appearance for native picker */
+@media (prefers-color-scheme: light), (prefers-color-scheme: dark) {
+    html:not(.light) select {
+        color-scheme: dark !important;
+    }
+}
+
+.modern-input:focus { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 4px var(--accent-glow); }
+
+.light select.modern-input {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7' /%3E%3C/svg%3E");
+}
 
 .cat-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 8px; }
 
@@ -65,6 +120,118 @@ body { background-color: var(--bg); color: var(--text-main); font-family: var(--
 @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Pet Container Styles */
+/* PREVIOUS TOAST REMOVED FOR NEW DYNAMIC SYSTEM */
+#toast { display: none; }
+
+.dynamic-toast {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    background: #111111 !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+    padding: 18px 24px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 340px;
+    z-index: 2147483647 !important; /* Max Z-INDEX possible */
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(25px) saturate(150%);
+    -webkit-backdrop-filter: blur(25px) saturate(150%);
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    opacity: 0;
+    pointer-events: auto;
+}
+
+.dynamic-toast.active {
+    opacity: 1 !important;
+    transform: translateX(0) !important;
+}
+
+@media (max-width: 768px) {
+    .dynamic-toast {
+        top: 15px !important;
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) translateY(-100px) !important;
+        width: 92% !important;
+        max-width: 400px !important;
+    }
+    .dynamic-toast.active {
+        transform: translateX(-50%) translateY(0) !important;
+        opacity: 1 !important;
+    }
+    .dynamic-toast.exit {
+        transform: translateX(-50%) translateY(-150px) !important;
+        opacity: 0 !important;
+    }
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.toast-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #000;
+}
+
+.toast-msg {
+    font-weight: 600;
+    font-size: 14px;
+    color: #fff;
+}
+
+.toast-loader-bg {
+    width: 100%;
+    height: 3px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.toast-loader-fill {
+    height: 100%;
+    background: #10b981; /* Green loading */
+    width: 100%;
+    transform-origin: left;
+    animation: toastProgress 2.5s linear forwards;
+}
+
+@keyframes toastProgress {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0); }
+}
+
+@media (max-width: 640px) {
+    .dynamic-toast {
+        top: 24px;
+        left: 20px;
+        right: 20px;
+        width: calc(100% - 40px);
+        transform: translateY(-150px) scale(0.9);
+        opacity: 0;
+    }
+    .dynamic-toast.active {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+        right: 20px;
+    }
+    .dynamic-toast.exit {
+        transform: translateY(-150px) scale(0.9);
+        opacity: 0;
+    }
+}
+
 .pet-container { position: relative; overflow: hidden; }
 .pet-animate { animation: petBounce 3s ease-in-out infinite; }
 @keyframes petBounce {

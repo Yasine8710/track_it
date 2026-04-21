@@ -416,7 +416,7 @@ function renderChart(categories) {
 }
 
 function getFormattedMoney(amount) {
-    const currency = typeof USER_CURRENCY !== 'undefined' ? USER_CURRENCY : 'USD';
+    const currency = typeof USER_CURRENCY !== 'undefined' ? USER_CURRENCY : 'TND';
     const symbols = {
         'USD': '$',
         'EUR': '€',
