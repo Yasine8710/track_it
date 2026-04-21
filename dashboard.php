@@ -107,9 +107,11 @@ $userCurrency = $user['currency'] ?? 'TND';
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/chat.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>const USER_CURRENCY = '<?= $userCurrency ?>';</script>
     <script src="js/app.js" defer></script>
+    <script src="js/chat.js" defer></script>
     <style>
         .sidebar { width: 280px; height: 100vh; position: fixed; left: 0; top: 0; background: var(--bg); border-right: 1px solid var(--border); padding: 40px 24px; transition: transform 0.3s; z-index: 1000; }
         .main-content { margin-left: 280px; padding: 40px; min-height: 100vh; padding-bottom: 120px; }
@@ -284,6 +286,7 @@ $userCurrency = $user['currency'] ?? 'TND';
             <div onclick="switchView('calendar')" class="nav-item" data-view="calendar"><i class="fas fa-calendar-alt"></i> Calendar</div>
             <div onclick="switchView('wishes')" class="nav-item" data-view="wishes"><i class="fas fa-star"></i> Wishes</div>
             <div onclick="switchView('settings')" class="nav-item" data-view="settings"><i class="fas fa-cog"></i> Settings</div>
+            <div onclick="switchView('assistant')" class="nav-item" data-view="assistant"><i class="fas fa-robot"></i> Assistant</div>
             <a href="dashboard.php?logout=1" class="nav-item" style="margin-top:40px; color:var(--danger);"><i class="fas fa-sign-out-alt"></i> Exit</a>
         </nav>
     </aside>
@@ -572,17 +575,84 @@ $userCurrency = $user['currency'] ?? 'TND';
                 </div>
             </div>
         </div>
+
+        <!-- ASSISTANT SECTION -->
+        <div id="section-assistant" class="view-section" style="height: 100%;">
+            <div class="premium-card" style="height: 600px; display: flex; flex-direction: column; padding: 0; overflow: hidden; border: 1px solid var(--accent);">
+                <div class="chat-header" style="background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px;">
+                    <h3 style="margin: 0; font-family: 'Outfit';"><i class="fas fa-robot"></i> DINARI Full Assistant</h3>
+                </div>
+                <div id="section-messages" class="chat-messages" style="flex: 1; padding: 24px;"></div>
+                <div id="section-suggestions" class="chat-suggestions" style="padding: 0 24px 16px;"></div>
+                <div class="chat-input-area" style="padding: 16px 24px; border-top: 1px solid var(--border);">
+                    <input type="text" id="section-chat-input" placeholder="Ask me about your finances..." style="background: var(--bg);">
+                    <button id="section-chat-send-btn" class="btn-glass" style="width: auto; padding: 0 20px; height: 44px;"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
     </main>
 
     <div id="balModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9000; align-items:center; justify-content:center;">
         <div class="premium-card" style="width:90%; max-width:380px;"><h3 style="margin-bottom:20px; font-family:'Outfit';">Manual Adjustment</h3><p style="font-size:12px; color:var(--text-sub); margin-bottom:15px;">Set your desired balance entry.</p><input type="number" id="newBal" step="0.01" class="modern-input" placeholder="0.00"><div style="display:flex; gap:12px; margin-top:30px;"><button onclick="closeBalanceModal()" class="btn-glass" style="flex:1;">Cancel</button><button onclick="saveManualBalance()" class="btn-glass" style="flex:1; background:var(--accent); color:#000;">Add Entry</button></div></div>
     </div>
 
-    <div class="voice-fab" id="mic-btn"><i class="fas fa-microphone"></i></div>
-    <div id="voice-status" style="position:fixed; bottom:100px; right:24px; background:rgba(0,0,0,0.8); color:white; padding:8px 16px; border-radius:20px; font-size:12px; display:none; z-index:9999;"></div>
+    <div class="voice-fab" id="mic-btn" style="bottom: 100px;"><i class="fas fa-microphone"></i></div>
+    <div id="voice-status" style="position:fixed; bottom:170px; right:24px; background:rgba(0,0,0,0.8); color:white; padding:8px 16px; border-radius:20px; font-size:12px; display:none; z-index:9999;"></div>
 
+    <!-- AI Chat System -->
+    <div class="chat-overlay" id="chat-overlay" onclick="toggleChatWindow()"></div>
+    <div class="chat-window" id="chat-window">
+        <div class="chat-edge-tab" onclick="toggleChatWindow()">
+            <i class="fas fa-chevron-left" style="margin-bottom: -10px;"></i>
+            <i class="fas fa-chevron-left"></i>
+        </div>
+        <div class="chat-header">
+            <h3><i class="fas fa-robot"></i> DINARI Assistant</h3>
+            <div class="chat-close" onclick="toggleChatWindow()"><i class="fas fa-times"></i></div>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <!-- Messages will appear here -->
+        </div>
+        <div class="chat-suggestions" id="chat-suggestions">
+            <!-- Suggestions will appear here -->
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Type a message...">
+            <button id="chat-send-btn"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <script id="chat-toggle-logic">
+        function toggleChatWindow() {
+            const chatWindow = document.getElementById('chat-window');
+            const chatOverlay = document.getElementById('chat-overlay');
+            if (chatWindow) {
+                const isActive = chatWindow.classList.contains('active');
+                
+                if (isActive) {
+                    // Closing sequence
+                    chatWindow.classList.remove('active');
+                    if (chatOverlay) chatOverlay.classList.remove('active');
+                } else {
+                    // Opening sequence
+                    chatWindow.classList.add('active');
+                    if (chatOverlay) chatOverlay.classList.add('active');
+                    
+                    // Delay focus to allow transition to finish
+                    setTimeout(() => {
+                        document.getElementById('chat-input')?.focus();
+                    }, 500);
+
+                    if (typeof showWelcome === 'function' && document.getElementById('chat-messages').children.length === 0) {
+                        showWelcome();
+                    }
+                }
+            }
+        }
+    </script>
     <script>
-        let qeType = 'outflow';
+        function toggleChatWindow_deprecated() { } // Old reference cleanup
+        
         async function syncStats() {
             try {
                 const res = await fetch('api/data.php');
