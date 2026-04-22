@@ -5,6 +5,12 @@ header('Content-Type: application/json');
 require_once '../includes/config.php';
 require_once '../includes/chat_helpers.php';
 
+define('SUGG_BALANCE', "How's my balance?");
+define('SUGG_MONTH',   'How was my month?');
+define('SUGG_TOP',     'What are my top expenses?');
+define('SUGG_TIPS',    'Tips to save money');
+define('SUGG_WHERE',   'Where does my money go?');
+
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
@@ -106,13 +112,6 @@ function callGeminiApi($prompt) {
 
     return [$result, null];
 }
-
-// ── Suggestion label constants ────────────────────────────────────────────
-const SUGG_BALANCE  = "How's my balance?";
-const SUGG_MONTH    = 'How was my month?';
-const SUGG_TOP      = 'What are my top expenses?';
-const SUGG_TIPS     = 'Tips to save money';
-const SUGG_WHERE    = 'Where does my money go?';
 
 function buildFallbackResponse($userMessage, $summary) {
     $msg = strtolower($userMessage);

@@ -5,6 +5,12 @@ header('Content-Type: application/json');
 require_once '../includes/config.php';
 require_once '../includes/chat_helpers.php';
 
+define('SUGG_BALANCE', "How's my balance?");
+define('SUGG_MONTH',   'How was my month?');
+define('SUGG_TOP',     'What are my top expenses?');
+define('SUGG_TIPS',    'Tips to save money');
+define('SUGG_WHERE',   'Where does my money go?');
+
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
@@ -37,7 +43,7 @@ Respond ONLY in this exact JSON format:
 
 User: $userMessage";
 
-[$geminiResult] = callGeminiApi($prompt);
+[$geminiResult, $geminiError] = callGeminiApi($prompt);
 
 if ($geminiResult !== null) {
     echo json_encode(array_merge(['success' => true], $geminiResult));
@@ -49,7 +55,7 @@ if ($geminiResult !== null) {
 // ---------------------------------------------------------------------------
 
 function callGeminiApi($prompt) {
-    $url  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . GEMINI_API_KEY;
+    $url  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' . GEMINI_API_KEY;
     $body = json_encode([
         'contents' => [
             ['role' => 'user', 'parts' => [['text' => $prompt]]]
@@ -108,35 +114,124 @@ function callGeminiApi($prompt) {
 }
 
 function buildFallbackResponse($userMessage, $summary) {
-    $balance  = number_format($summary['current_balance'], 2);
-    $monthIn  = number_format($summary['month_inflow'], 2);
-    $monthOut = number_format($summary['month_outflow'], 2);
-    $txCount  = $summary['month_transaction_count'];
-    $msg      = strtolower($userMessage);
+    $msg = strtolower($userMessage);
 
-    $defaultSuggestions = [
-        "What's my balance?",
-        'How was my month?',
-        'What are my top expenses?',
+    $data = [
+        'balance'   => number_format($summary['current_balance'], 2),
+        'monthIn'   => number_format($summary['month_inflow'],  2),
+        'monthOut'  => number_format($summary['month_outflow'], 2),
+        'totalIn'   => number_format($summary['total_inflow'],  2),
+        'totalOut'  => number_format($summary['total_outflow'], 2),
+        'txCount'   => $summary['month_transaction_count'],
+        'saved'     => (float)$summary['month_inflow'] - (float)$summary['month_outflow'],
+        'rate'      => $summary['month_inflow'] > 0
+                       ? round(($summary['month_outflow'] / $summary['month_inflow']) * 100)
+                       : 0,
+        'topCats'   => $summary['top_categories'],
+        'recentTxs' => $summary['recent_transactions'],
     ];
+    $data['savedFmt'] = number_format(abs($data['saved']), 2);
 
-    if (strpos($msg, 'balance') !== false) {
-        $reply = "Your current balance is {$balance} TND, calculated from all your recorded transactions.";
-    } elseif (strpos($msg, 'summary') !== false || strpos($msg, 'month') !== false) {
-        $reply = "This month you earned {$monthIn} TND and spent {$monthOut} TND across {$txCount} transactions.";
-    } elseif (strpos($msg, 'top') !== false || strpos($msg, 'biggest') !== false) {
-        if (!empty($summary['top_categories'])) {
-            $top   = $summary['top_categories'][0];
-            $reply = "Your biggest spending category this month is {$top['name']} at "
-                   . number_format((float)$top['total'], 2) . " TND.";
-        } else {
-            $reply = "No expense data found for this month yet — start logging transactions!";
-        }
-    } else {
-        $reply = "I'm having trouble connecting right now. Here's your quick summary: "
-               . "balance is {$balance} TND, and this month you earned {$monthIn} TND and spent {$monthOut} TND.";
+    [$reply, $sugg] = matchIntent($msg, $data);
+    return ['response' => $reply, 'suggestions' => $sugg];
+}
+
+function matchIntent($msg, $d) {
+    if (str_contains($msg, 'balance') || str_contains($msg, 'how much')) {
+        return replyBalance($d);
     }
+    if (str_contains($msg, 'month') || str_contains($msg, 'summary')) {
+        return replyMonth($d);
+    }
+    if (str_contains($msg, 'top') || str_contains($msg, 'biggest') || str_contains($msg, 'spend')
+        || str_contains($msg, 'expense') || str_contains($msg, 'where') || str_contains($msg, 'most')) {
+        return replyTopCats($d);
+    }
+    if (str_contains($msg, 'recent') || str_contains($msg, 'last') || str_contains($msg, 'latest')) {
+        return replyRecent($d);
+    }
+    if (str_contains($msg, 'save') || str_contains($msg, 'tip') || str_contains($msg, 'advice')
+        || str_contains($msg, 'improve') || str_contains($msg, 'manage') || str_contains($msg, 'cut')) {
+        return replyTips($d);
+    }
+    if (str_contains($msg, 'earn') || str_contains($msg, 'income') || str_contains($msg, 'inflow')) {
+        return replyIncome($d);
+    }
+    return replyGeneric($d);
+}
 
-    return ['response' => $reply, 'suggestions' => $defaultSuggestions];
+function replyBalance($d) {
+    $reply = "Your current balance is {$d['balance']} TND. "
+           . "All-time you've earned {$d['totalIn']} TND and spent {$d['totalOut']} TND.";
+    return [$reply, [SUGG_MONTH, SUGG_WHERE, SUGG_TIPS]];
+}
+
+function replyMonth($d) {
+    if ($d['saved'] >= 0) {
+        $reply = "Great month! You earned {$d['monthIn']} TND, spent {$d['monthOut']} TND, "
+               . "and saved {$d['savedFmt']} TND ({$d['rate']}% spending rate) across {$d['txCount']} transactions.";
+    } else {
+        $reply = "This month you earned {$d['monthIn']} TND but spent {$d['monthOut']} TND — "
+               . "you're {$d['savedFmt']} TND over your income. Consider cutting back next month.";
+    }
+    return [$reply, [SUGG_TOP, SUGG_BALANCE, SUGG_TIPS]];
+}
+
+function replyTopCats($d) {
+    if (empty($d['topCats'])) {
+        return ['No expense data for this month yet. Start logging transactions to see your breakdown!',
+                [SUGG_MONTH, SUGG_BALANCE, SUGG_TIPS]];
+    }
+    $lines = [];
+    foreach (array_slice($d['topCats'], 0, 3) as $i => $cat) {
+        $pct     = $d['monthOut'] > 0 ? round(($cat['total'] / (float)$d['monthOut']) * 100) : 0;
+        $lines[] = ($i + 1) . ". {$cat['name']}: " . number_format((float)$cat['total'], 2) . " TND ({$pct}%)";
+    }
+    $reply = "Your top spending categories this month:\n" . implode("\n", $lines);
+    return [$reply, [SUGG_MONTH, SUGG_BALANCE, SUGG_TIPS]];
+}
+
+function replyRecent($d) {
+    if (empty($d['recentTxs'])) {
+        return ['No transactions recorded yet. Add your first one from the Home tab!',
+                [SUGG_MONTH, SUGG_TOP, SUGG_BALANCE]];
+    }
+    $tx    = $d['recentTxs'][0];
+    $sign  = $tx['type'] === 'inflow' ? '+' : '-';
+    $amt   = number_format((float)$tx['amount'], 2);
+    $cat   = $tx['category_name'] ?? 'Uncategorized';
+    $desc  = $tx['description'] ? " ({$tx['description']})" : '';
+    $reply = "Your most recent transaction: {$sign}{$amt} TND in {$cat}{$desc} on {$tx['transaction_date']}.";
+    return [$reply, [SUGG_MONTH, SUGG_TOP, SUGG_BALANCE]];
+}
+
+function replyTips($d) {
+    if (!empty($d['topCats'])) {
+        $top    = $d['topCats'][0];
+        $topAmt = number_format((float)$top['total'], 2);
+        $advice = $d['rate'] > 80 ? "that's high, aim for under 70%." : "that's reasonable, keep it up!";
+        $reply  = "Your biggest expense is {$top['name']} at {$topAmt} TND this month. "
+                . "Try setting a weekly limit there. You're spending {$d['rate']}% of your income — {$advice}";
+    } else {
+        $reply = "Start by logging all your expenses so I can spot where you can cut back. "
+               . "A good rule: keep spending under 70% of your income and save the rest.";
+    }
+    return [$reply, [SUGG_TOP, SUGG_MONTH, SUGG_BALANCE]];
+}
+
+function replyIncome($d) {
+    $reply = "This month you earned {$d['monthIn']} TND. All-time total income: {$d['totalIn']} TND.";
+    return [$reply, [SUGG_MONTH, SUGG_TOP, SUGG_TIPS]];
+}
+
+function replyGeneric($d) {
+    if ($d['saved'] >= 0) {
+        $reply = "You're doing well! Balance: {$d['balance']} TND. "
+               . "This month: earned {$d['monthIn']} TND, spent {$d['monthOut']} TND, saved {$d['savedFmt']} TND.";
+    } else {
+        $reply = "Heads up — this month you spent more than you earned. "
+               . "Balance: {$d['balance']} TND. Earned {$d['monthIn']} TND, spent {$d['monthOut']} TND.";
+    }
+    return [$reply, [SUGG_TOP, SUGG_TIPS, SUGG_BALANCE]];
 }
 
