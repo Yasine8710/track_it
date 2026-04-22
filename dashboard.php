@@ -133,6 +133,7 @@ $userCurrency = $user['currency'] ?? 'TND';
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/chat.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>const USER_CURRENCY = '<?= $userCurrency ?>';</script>
     <script src="js/app.js" defer></script>
@@ -307,6 +308,7 @@ $userCurrency = $user['currency'] ?? 'TND';
             <div onclick="switchView('history')" class="nav-item" data-view="history"><i class="fas fa-history"></i> Logbook</div>
             <div onclick="switchView('calendar')" class="nav-item" data-view="calendar"><i class="fas fa-calendar-alt"></i> Calendar</div>
             <div onclick="switchView('wishes')" class="nav-item" data-view="wishes"><i class="fas fa-star"></i> Wishes</div>
+            <div onclick="switchView('chat')" class="nav-item" data-view="chat"><i class="fas fa-robot"></i> Assistant</div>
             <div onclick="switchView('settings')" class="nav-item" data-view="settings"><i class="fas fa-cog"></i> Settings</div>
             <a href="dashboard.php?logout=1" class="nav-item" style="margin-top:40px; color:var(--danger);"><i class="fas fa-sign-out-alt"></i> Exit</a>
         </nav>
@@ -318,6 +320,7 @@ $userCurrency = $user['currency'] ?? 'TND';
         <div onclick="switchView('history')" class="bottom-nav-item" data-view="history"><i class="fas fa-history"></i><span>Logs</span></div>
         <div onclick="switchView('calendar')" class="bottom-nav-item" data-view="calendar"><i class="fas fa-calendar-alt"></i><span>Calendar</span></div>
         <div onclick="switchView('wishes')" class="bottom-nav-item" data-view="wishes"><i class="fas fa-star"></i><span>Wishes</span></div>
+        <div onclick="switchView('chat')" class="bottom-nav-item" data-view="chat"><i class="fas fa-robot"></i><span>AI</span></div>
         <div onclick="switchView('settings')" class="bottom-nav-item" data-view="settings"><i class="fas fa-cog"></i><span>Settings</span></div>
     </nav>
 
@@ -538,6 +541,37 @@ $userCurrency = $user['currency'] ?? 'TND';
             </div>
         </div>
 
+        <!-- CHAT ASSISTANT -->
+        <div id="section-chat" class="view-section">
+            <div class="dnchat">
+
+                <div class="dnchat__head">
+                    <div class="dnchat__head-icon"><i class="fas fa-robot"></i></div>
+                    <div class="dnchat__head-info">
+                        <div class="dnchat__head-name">DINARI Assistant</div>
+                        <div class="dnchat__head-status">
+                            <span class="dnchat__head-dot"></span>Online &middot; Gemini AI
+                        </div>
+                    </div>
+                    <span class="dnchat__head-badge">AI</span>
+                </div>
+
+                <div class="dnchat__feed" id="chat-messages"></div>
+
+                <div class="dnchat__chips" id="chat-suggestions"></div>
+
+                <div class="dnchat__bar">
+                    <input id="chat-input" class="dnchat__input"
+                           type="text" placeholder="Ask about your finances…" autocomplete="off"
+                           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();handleChatSend();}">
+                    <button class="dnchat__send" title="Send" onclick="handleChatSend()">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
         <!-- SETTINGS -->
         <div id="section-settings" class="view-section">
             <div class="settings-grid">
@@ -669,9 +703,13 @@ $userCurrency = $user['currency'] ?? 'TND';
             document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
             document.getElementById('section-' + view).classList.add('active');
             document.querySelectorAll('.nav-item, .bottom-nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
+            // Hide voice FAB on chat tab so it doesn't cover the send button
+            const micBtn = document.getElementById('mic-btn');
+            if (micBtn) micBtn.style.display = view === 'chat' ? 'none' : '';
             if(view === 'stats') initChart();
             if(view === 'calendar') renderCalendar();
             if(view === 'wishes') fetchWishes();
+            if(view === 'chat') initChat();
         }
 
         async function fetchWishes() {
@@ -1090,5 +1128,6 @@ $userCurrency = $user['currency'] ?? 'TND';
             </button>
         </div>
     </div>
+    <script src="js/chat.js?v=4"></script>
 </body>
 </html>
