@@ -1,0 +1,7 @@
+organization=yasine8710
+projectKey=dineri-finance-tracker
+serverUrl=https://sonarcloud.io
+serverVersion=8.0.0.85848
+dashboardUrl=https://sonarcloud.io/dashboard?id=dineri-finance-tracker
+ceTaskId=AZ2x8itGh2NSdWAmH_z4
+ceTaskUrl=https://sonarcloud.io/api/ce/task?id=AZ2x8itGh2NSdWAmH_z4
