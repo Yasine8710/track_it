@@ -95,7 +95,11 @@ if ($method === 'GET') {
             $stmtTx->execute([$user_id, $amount, "Funded Wish: " . $wishTitle]);
             
             $pdo->commit();
-            return ['success' => true];
+            if (!defined('TEST_MODE')) {
+                echo json_encode(['success' => true]);
+            } else {
+                return ['success' => true];
+            }
         } catch (Exception $e) {
             $pdo->rollBack();
             if (!defined('TEST_MODE')) {
