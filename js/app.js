@@ -623,6 +623,14 @@ function setupVoiceRecognition() {
         
         voiceRecognition.onerror = (e) => {
             micBtn.classList.remove('recording-active');
+            if (e.error === 'network') {
+                // Chrome network error on first use — retry once after a short delay
+                if (statusText) statusText.textContent = 'Retrying...';
+                setTimeout(() => {
+                    try { voiceRecognition.start(); micBtn.classList.add('recording-active'); } catch(err) {}
+                }, 1000);
+                return;
+            }
             console.error("Speech Recognition Error:", e.error);
             if (statusText) statusText.textContent = `Voice error: ${e.error}. Try again.`;
         };
