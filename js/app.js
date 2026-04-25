@@ -558,89 +558,61 @@ function setupVoiceRecognition() {
     const micBtn = document.getElementById('mic-btn');
     const statusText = document.getElementById('voice-status');
 
-    if (!('webkitSpeechRecognition' in window)) {
-        if (statusText) statusText.textContent = "Browser not supported.";
-        // Disable button visually
-        if (micBtn) micBtn.classList.add('opacity-50', 'grayscale');
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        if (statusText) statusText.textContent = 'Browser not supported.';
+        if (micBtn) micBtn.style.opacity = '0.5';
         return;
     }
 
-    voiceRecognition = new webkitSpeechRecognition();
-    window.voiceRecognition = voiceRecognition; // Expose to window for testing
-    voiceRecognition.continuous = false;
-    voiceRecognition.lang = 'en-US';
-
     if (micBtn) {
         micBtn.addEventListener('click', () => {
-            try {
-                voiceRecognition.start();
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SR();
+            window.voiceRecognition = recognition;
+            recognition.continuous = false;
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
                 micBtn.classList.add('recording-active');
-                if (statusText) {
-                    statusText.style.display = 'block';
-                    statusText.innerHTML = '<span class="text-white font-bold animate-pulse">Listening...</span>';
+                if (statusText) { statusText.style.display = 'block'; statusText.textContent = 'Listening...'; }
+            };
+
+            recognition.onresult = async (event) => {
+                micBtn.classList.remove('recording-active');
+                const transcript = event.results[0][0].transcript;
+                if (statusText) statusText.textContent = 'Processing: "' + transcript + '"...';
+                try {
+                    const res = await fetch('api/process_voice.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ transcript })
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                        if (statusText) statusText.textContent = result.message;
+                        setTimeout(() => { if (statusText) { statusText.style.display = 'none'; statusText.textContent = ''; } }, 3000);
+                        if (typeof syncStats === 'function') syncStats();
+                        if (window.location.pathname.includes('dashboard.php')) setTimeout(() => location.reload(), 1500);
+                    } else {
+                        if (statusText) statusText.textContent = result.message;
+                    }
+                } catch (e) {
+                    if (statusText) statusText.textContent = 'Error processing voice command.';
                 }
-            } catch (e) {
-                console.error("Voice start error:", e);
+            };
+
+            recognition.onerror = (e) => {
+                micBtn.classList.remove('recording-active');
+                if (statusText) statusText.textContent = 'Voice error: ' + e.error + '. Try again.';
+            };
+
+            recognition.onend = () => { micBtn.classList.remove('recording-active'); };
+
+            try { recognition.start(); } catch (e) {
+                if (statusText) statusText.textContent = 'Could not start microphone.';
             }
         });
-
-        voiceRecognition.onresult = async (event) => {
-            micBtn.classList.remove('recording-active');
-            const transcript = event.results[0][0].transcript;
-            if (statusText) statusText.textContent = `Processing: "${transcript}"...`;
-            
-            try {
-                const res = await fetch('api/process_voice.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ transcript: transcript })
-                });
-                const result = await res.json();
-                
-                if (result.success) {
-                    if (statusText) statusText.innerHTML = `<span class="text-emerald-400"><i class="fas fa-check mr-1"></i> ${result.message}</span>`;
-                    setTimeout(() => {
-                        if (statusText) {
-                            statusText.style.display = 'none';
-                            statusText.innerHTML = '';
-                        }
-                    }, 3000);
-                    
-                    if (typeof loadDashboardData === 'function') loadDashboardData();
-                    if (typeof syncStats === 'function') syncStats();
-                    
-                    // If we are on dashboard.php, a reload might be simpler for certain UI elements
-                    if (window.location.pathname.includes('dashboard.php')) {
-                        setTimeout(() => location.reload(), 1500);
-                    }
-                } else {
-                    if (statusText) statusText.innerHTML = `<span class="text-red-400"><i class="fas fa-times mr-1"></i> ${result.message}</span>`;
-                }
-            } catch (e) {
-                if (statusText) statusText.textContent = "Error processing voice command.";
-            }
-        };
-        
-        voiceRecognition.onerror = (e) => {
-            micBtn.classList.remove('recording-active');
-            if (e.error === 'network') {
-                // Chrome network error on first use — retry once after a short delay
-                if (statusText) statusText.textContent = 'Retrying...';
-                setTimeout(() => {
-                    try { voiceRecognition.start(); micBtn.classList.add('recording-active'); } catch(err) {}
-                }, 1000);
-                return;
-            }
-            console.error("Speech Recognition Error:", e.error);
-            if (statusText) statusText.textContent = `Voice error: ${e.error}. Try again.`;
-        };
-
-        voiceRecognition.onend = () => {
-            micBtn.classList.remove('recording-active');
-            if (statusText && statusText.textContent === "Listening...") {
-                statusText.innerHTML = '<span class="w-1.5 h-1.5 bg-white rounded-full mr-2 animate-pulse"></span>Ready to listen...';
-            }
-        };
     }
 }
 
